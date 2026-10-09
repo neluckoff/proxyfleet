@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="ProxyFleet — центральное управление приватными proxy-нодами">
+  <title>ProxyFleet</title>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <div id="toast" class="toast" aria-live="polite"></div>
+
+  <section id="login-screen" class="login-screen hidden">
+    <div class="login-glow"></div>
+    <form id="login-form" class="login-card">
+      <div class="brand brand-large"><span class="brand-mark">PF</span><span><b>ProxyFleet</b><small>CONTROL PLANE</small></span></div>
+      <div>
+        <p class="eyebrow">ПРИВАТНАЯ ИНФРАСТРУКТУРА</p>
+        <h1>Управляйте всеми нодами из одного места</h1>
+        <p class="muted">Войдите, чтобы открыть карту сети, пользователей и состояние Telegram.</p>
+      </div>
+      <label>Логин<input name="username" autocomplete="username" value="admin" required></label>
+      <label>Пароль<input name="password" type="password" autocomplete="current-password" required></label>
+      <button class="button primary wide" type="submit"><span>Войти в панель</span><span>→</span></button>
+      <p id="login-error" class="form-error"></p>
+    </form>
+  </section>
+
+  <div id="app" class="app-shell hidden">
+    <aside class="sidebar">
+      <div class="brand"><span class="brand-mark">PF</span><span><b>ProxyFleet</b><small>CONTROL PLANE</small></span></div>
+      <nav>
+        <button class="nav-item active" data-view="dashboard"><span class="nav-icon">⌘</span>Обзор</button>
+        <button class="nav-item" data-view="nodes"><span class="nav-icon">◇</span>Ноды <span id="nodes-badge" class="nav-badge">0</span></button>
+        <button class="nav-item" data-view="users"><span class="nav-icon">♙</span>Пользователи</button>
+        <button class="nav-item" data-view="events"><span class="nav-icon">≋</span>События</button>
+      </nav>
+      <div class="sidebar-bottom">
+        <div class="control-status"><span class="pulse"></span><span><b>Control plane</b><small>Система работает</small></span></div>
+        <button id="logout" class="logout-button">Выйти</button>
+      </div>
+    </aside>
+
+    <main class="main">
+      <header class="topbar">
+        <div><p class="eyebrow" id="section-kicker">СЕТЬ</p><h2 id="section-title">Обзор</h2></div>
+        <div class="top-actions">
+          <div class="live-label"><span class="pulse"></span>LIVE</div>
+          <button class="button primary" data-action="new-node">+ Добавить ноду</button>
+        </div>
+      </header>
+
+      <section id="view-dashboard" class="view active">
+        <div class="hero-panel">
+          <div>
+            <p class="eyebrow lime">СОСТОЯНИЕ СЕТИ</p>
+            <h1><span id="healthy-count">0</span> нод готовы<br>принимать трафик</h1>
+            <p id="network-summary" class="hero-copy">Подключите первую ноду, чтобы развернуть приватную proxy-сеть.</p>
+          </div>
+          <div class="orbital" aria-hidden="true"><div class="orbit orbit-one"></div><div class="orbit orbit-two"></div><div class="core-dot"></div></div>
+        </div>
+
+        <div class="metric-grid">
+          <article class="metric-card"><span class="metric-icon green">◇</span><div><small>Ноды онлайн</small><strong id="metric-online">0 / 0</strong></div><span id="online-trend" class="chip">—</span></article>
+          <article class="metric-card"><span class="metric-icon violet">↯</span><div><small>Активные соединения</small><strong id="metric-connections">0</strong></div><span class="chip neutral">сейчас</span></article>
+          <article class="metric-card"><span class="metric-icon blue">⇅</span><div><small>Передано данных</small><strong id="metric-traffic">0 Б</strong></div><span class="chip neutral">всего</span></article>
+          <article class="metric-card"><span class="metric-icon amber">♙</span><div><small>Пользователи</small><strong id="metric-users">0</strong></div><span class="chip neutral">доступы</span></article>
+        </div>
+
+        <div class="split-grid">
+          <article class="panel">
+            <div class="panel-head"><div><p class="eyebrow">ИНФРАСТРУКТУРА</p><h3>Состояние нод</h3></div><button class="text-button" data-view-link="nodes">Все ноды →</button></div>
+            <div id="dashboard-nodes" class="node-list empty-state">Ноды пока не подключены</div>
+          </article>
+          <article class="panel">
+            <div class="panel-head"><div><p class="eyebrow">ПОСЛЕДНИЕ ИЗМЕНЕНИЯ</p><h3>Лента событий</h3></div><button class="text-button" data-view-link="events">Журнал →</button></div>
+            <div id="dashboard-events" class="timeline empty-state">Событий пока нет</div>
+          </article>
+        </div>
+      </section>
+
+      <section id="view-nodes" class="view">
+        <div class="page-intro"><div><h1>Proxy-ноды</h1><p>Серверы, которые принимают HTTP и SOCKS5 трафик.</p></div><button class="button primary" data-action="new-node">+ Новая нода</button></div>
+        <div id="nodes-grid" class="nodes-grid"></div>
+      </section>
+
+      <section id="view-users" class="view">
+        <div class="page-intro"><div><h1>Пользователи</h1><p>Единые доступы, которые автоматически доставляются на выбранные ноды.</p></div><button class="button primary" data-action="new-user">+ Создать доступ</button></div>
+        <article class="panel table-panel">
+          <div class="table-scroll"><table><thead><tr><th>Пользователь</th><th>Логин</th><th>Ноды</th><th>Состояние</th><th>Создан</th><th></th></tr></thead><tbody id="users-table"></tbody></table></div>
+        </article>
+      </section>
+
+      <section id="view-events" class="view">
+        <div class="page-intro"><div><h1>Журнал событий</h1><p>Подключения, изменения конфигурации и проверки доступности.</p></div></div>
+        <article class="panel"><div id="events-list" class="event-log"></div></article>
+      </section>
+    </main>
+  </div>
+
+  <dialog id="node-dialog" class="modal">
+    <form id="node-form" method="dialog">
+      <div class="modal-head"><div><p class="eyebrow">НОВАЯ НОДА</p><h3>Подключить сервер</h3></div><button class="icon-button" value="cancel" aria-label="Закрыть">×</button></div>
+      <p class="muted">После создания появится одноразовая Docker-команда. Выполните её на новом VPS.</p>
+      <div class="form-grid">
+        <label class="span-2">Название<input name="name" placeholder="Amsterdam Edge 01" required></label>
+        <label>Регион<input name="region" placeholder="NL · Amsterdam"></label>
+        <label>Публичный адрес<input name="advertisedHost" placeholder="proxy-nl.example.com"></label>
+        <label>HTTP порт<input name="httpPort" type="number" min="1024" max="65535" value="3128" required></label>
+        <label>SOCKS5 порт<input name="socksPort" type="number" min="1024" max="65535" value="1080" required></label>
+      </div>
+      <p class="form-error" data-form-error></p>
+      <div class="modal-actions"><button class="button secondary" value="cancel">Отмена</button><button class="button primary" type="submit">Создать ноду</button></div>
+    </form>
+  </dialog>
+
+  <dialog id="user-dialog" class="modal">
+    <form id="user-form" method="dialog">
+      <div class="modal-head"><div><p class="eyebrow">НОВЫЙ ДОСТУП</p><h3>Создать пользователя</h3></div><button class="icon-button" value="cancel" aria-label="Закрыть">×</button></div>
+      <div class="form-grid">
+        <label>Название<input name="name" placeholder="MineDecor bot" required></label>
+        <label>Логин<input name="username" placeholder="minedecor" required></label>
+        <label class="span-2">Пароль <span class="label-note">оставьте пустым для генерации</span><input name="password" type="password" minlength="12" placeholder="Будет сгенерирован автоматически"></label>
+        <fieldset class="span-2"><legend>Доступные ноды</legend><div id="user-node-options" class="check-grid"></div></fieldset>
+      </div>
+      <p class="form-error" data-form-error></p>
+      <div class="modal-actions"><button class="button secondary" value="cancel">Отмена</button><button class="button primary" type="submit">Создать доступ</button></div>
+    </form>
+  </dialog>
+
+  <dialog id="secret-dialog" class="modal secret-modal">
+    <div class="modal-head"><div><p class="eyebrow lime">ГОТОВО</p><h3 id="secret-title">Нода создана</h3></div><button class="icon-button" data-close-dialog>×</button></div>
+    <p id="secret-copy" class="muted"></p>
+    <div class="secret-box"><code id="secret-value"></code><button id="copy-secret" class="copy-button">Копировать</button></div>
+    <p class="warning-note">Значение показывается только сейчас. Сохраните его в безопасном месте.</p>
+    <div class="modal-actions"><button class="button primary" data-close-dialog>Готово</button></div>
+  </dialog>
+
+  <script src="/app.js" defer></script>
+</body>
+</html>

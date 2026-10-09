@@ -1,0 +1,27 @@
+name: proxyfleet-node
+
+services:
+  node:
+    container_name: proxyfleet-node
+    build:
+      context: .
+    image: ${PROXYFLEET_IMAGE:-proxyfleet:local}
+    restart: unless-stopped
+    command: ["agent"]
+    environment:
+      CONTROL_URL: ${CONTROL_URL:?CONTROL_URL is required}
+      ENROLL_TOKEN: ${ENROLL_TOKEN:-}
+      AGENT_STATE_PATH: /data/agent.json
+    volumes:
+      - node_data:/data
+    ports:
+      - "${HTTP_PROXY_PORT:-3128}:3128"
+      - "${SOCKS_PROXY_PORT:-1080}:1080"
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+
+volumes:
+  node_data:
+    name: proxyfleet-node-data
