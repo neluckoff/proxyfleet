@@ -3,9 +3,18 @@ package model
 import "time"
 
 type State struct {
-	Nodes  []*Node      `json:"nodes"`
-	Users  []*ProxyUser `json:"users"`
-	Events []*Event     `json:"events"`
+	Settings *Settings    `json:"settings,omitempty"`
+	Nodes    []*Node      `json:"nodes"`
+	Users    []*ProxyUser `json:"users"`
+	Events   []*Event     `json:"events"`
+}
+
+type Settings struct {
+	AdminUsername     string    `json:"adminUsername"`
+	AdminPasswordHash string    `json:"adminPasswordHash"`
+	SessionSecret     string    `json:"sessionSecret"`
+	PublicURL         string    `json:"publicUrl"`
+	CreatedAt         time.Time `json:"createdAt"`
 }
 
 type Node struct {

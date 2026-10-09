@@ -3,13 +3,14 @@ package control
 import (
 	"bytes"
 	"encoding/json"
-	"io"
-	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"path/filepath"
 	"testing"
 	"time"
+
+	"github.com/neluckoff/proxyfleet/internal/model"
+	"golang.org/x/crypto/bcrypt"
 )
 
 func testServer(t *testing.T) *server {
@@ -19,19 +20,70 @@ func testServer(t *testing.T) *server {
 		t.Fatal(err)
 	}
 	return &server{
-		log: slog.New(slog.NewTextHandler(io.Discard, nil)), store: st,
-		adminUser: "admin", adminPassword: "a-long-test-password", sessionSecret: []byte("01234567890123456789012345678901"),
-		publicURL: "https://proxy.example.test", nodeImage: "proxyfleet:test", cookieSecure: true,
+		store: st, nodeImage: "proxyfleet:test",
 	}
+}
+
+func configureTestOwner(t *testing.T, s *server) *model.Settings {
+	t.Helper()
+	hash, err := bcrypt.GenerateFromPassword([]byte("a-long-test-password"), bcrypt.MinCost)
+	if err != nil {
+		t.Fatal(err)
+	}
+	settings := &model.Settings{
+		AdminUsername: "admin", AdminPasswordHash: string(hash),
+		SessionSecret: "01234567890123456789012345678901", PublicURL: "https://proxy.example.test", CreatedAt: time.Now().UTC(),
+	}
+	if err := s.store.update(func(state *model.State) error { state.Settings = settings; return nil }); err != nil {
+		t.Fatal(err)
+	}
+	return settings
 }
 
 func TestSessionSigning(t *testing.T) {
 	s := testServer(t)
-	if !s.verifySession(s.signSession(time.Now().Add(time.Hour))) {
+	settings := configureTestOwner(t, s)
+	if !verifySession(settings, signSession(settings, time.Now().Add(time.Hour))) {
 		t.Fatal("fresh session must be valid")
 	}
-	if s.verifySession(s.signSession(time.Now().Add(-time.Hour))) {
+	if verifySession(settings, signSession(settings, time.Now().Add(-time.Hour))) {
 		t.Fatal("expired session must be rejected")
+	}
+}
+
+func TestInitialSetupAndLogin(t *testing.T) {
+	s := testServer(t)
+	setupBody := []byte(`{"username":"owner","password":"a-very-long-password","publicUrl":"https://proxy.example.test/"}`)
+	setupRequest := httptest.NewRequest(http.MethodPost, "/api/setup", bytes.NewReader(setupBody))
+	setupRequest.Header.Set("X-Forwarded-Proto", "https")
+	setupResponse := httptest.NewRecorder()
+	s.setup(setupResponse, setupRequest)
+	if setupResponse.Code != http.StatusCreated {
+		t.Fatalf("setup returned %d: %s", setupResponse.Code, setupResponse.Body.String())
+	}
+	settings := s.store.snapshot().Settings
+	if settings == nil || settings.SessionSecret == "" || settings.PublicURL != "https://proxy.example.test" {
+		t.Fatalf("settings were not persisted correctly: %#v", settings)
+	}
+	if settings.AdminPasswordHash == "a-very-long-password" || bcrypt.CompareHashAndPassword([]byte(settings.AdminPasswordHash), []byte("a-very-long-password")) != nil {
+		t.Fatal("password was not stored as a valid bcrypt hash")
+	}
+	cookies := setupResponse.Result().Cookies()
+	if len(cookies) != 1 || !cookies[0].HttpOnly || !cookies[0].Secure {
+		t.Fatalf("setup did not create a secure session cookie: %#v", cookies)
+	}
+
+	duplicateResponse := httptest.NewRecorder()
+	s.setup(duplicateResponse, httptest.NewRequest(http.MethodPost, "/api/setup", bytes.NewReader(setupBody)))
+	if duplicateResponse.Code != http.StatusConflict {
+		t.Fatalf("second setup returned %d", duplicateResponse.Code)
+	}
+
+	loginBody := []byte(`{"username":"owner","password":"a-very-long-password"}`)
+	loginResponse := httptest.NewRecorder()
+	s.login(loginResponse, httptest.NewRequest(http.MethodPost, "/api/login", bytes.NewReader(loginBody)))
+	if loginResponse.Code != http.StatusOK {
+		t.Fatalf("login returned %d: %s", loginResponse.Code, loginResponse.Body.String())
 	}
 }
 

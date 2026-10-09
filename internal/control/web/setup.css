@@ -1,0 +1,42 @@
+.login-card.setup-card {
+  width: min(560px, 100%);
+}
+
+.password-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.field-hint {
+  color: #66726a;
+  font-size: 9px;
+  font-weight: 500;
+}
+
+.security-note {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  padding: 10px 12px;
+  border: 1px solid #233029;
+  border-radius: 10px;
+  background: #0b110d;
+  color: #809087;
+  font-size: 10px;
+}
+
+.security-note span {
+  color: var(--lime);
+}
+
+.security-note code {
+  color: #aebbb2;
+}
+
+@media (max-width: 760px) {
+  .password-grid {
+    grid-template-columns: 1fr;
+  }
+}

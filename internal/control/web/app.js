@@ -1,4 +1,4 @@
-const state = { me: null, overview: {}, nodes: [], users: [], events: [], view: 'dashboard' }
+const state = { me: null, overview: {}, nodes: [], users: [], events: [], view: 'dashboard', refreshTimer: null }
 
 const $ = (selector, root = document) => root.querySelector(selector)
 const $$ = (selector, root = document) => [...root.querySelectorAll(selector)]
@@ -20,24 +20,42 @@ async function api(path, options = {}) {
 
 async function bootstrap() {
   try {
+    const setup = await api('/api/setup/status')
+    if (!setup.configured) {
+      $('#setup-form [name=publicUrl]').value = window.location.origin
+      showSetup()
+      return
+    }
     state.me = await api('/api/me')
     showApp()
     await refreshAll()
-    setInterval(refreshAll, 10000)
+    startRefreshTimer()
   } catch (error) {
     if (error.status === 401) showLogin()
     else showToast(error.message)
   }
 }
 
+function showSetup() {
+  $('#setup-screen').classList.remove('hidden')
+  $('#login-screen').classList.add('hidden')
+  $('#app').classList.add('hidden')
+}
+
 function showLogin() {
+  $('#setup-screen').classList.add('hidden')
   $('#login-screen').classList.remove('hidden')
   $('#app').classList.add('hidden')
 }
 
 function showApp() {
+  $('#setup-screen').classList.add('hidden')
   $('#login-screen').classList.add('hidden')
   $('#app').classList.remove('hidden')
+}
+
+function startRefreshTimer() {
+  if (!state.refreshTimer) state.refreshTimer = setInterval(refreshAll, 10000)
 }
 
 async function refreshAll() {
@@ -163,6 +181,24 @@ function showSecret(title, copy, value) {
   $('#secret-dialog').showModal()
 }
 
+$('#setup-form').addEventListener('submit', async event => {
+  event.preventDefault()
+  const form = new FormData(event.currentTarget)
+  const errorNode = $('#setup-error')
+  errorNode.textContent = ''
+  if (form.get('password') !== form.get('passwordConfirm')) {
+    errorNode.textContent = 'Пароли не совпадают'
+    return
+  }
+  const payload = { username: form.get('username'), password: form.get('password'), publicUrl: form.get('publicUrl') }
+  try {
+    state.me = await api('/api/setup', { method: 'POST', body: JSON.stringify(payload) })
+    showApp()
+    await refreshAll()
+    startRefreshTimer()
+  } catch (error) { errorNode.textContent = error.message }
+})
+
 $('#login-form').addEventListener('submit', async event => {
   event.preventDefault()
   const form = new FormData(event.currentTarget)
@@ -171,6 +207,7 @@ $('#login-form').addEventListener('submit', async event => {
     await api('/api/login', { method: 'POST', body: JSON.stringify(Object.fromEntries(form)) })
     showApp()
     await refreshAll()
+    startRefreshTimer()
   } catch (error) { $('#login-error').textContent = error.message }
 })
 

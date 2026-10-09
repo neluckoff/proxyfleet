@@ -16,30 +16,19 @@
 - активные соединения и счётчики трафика;
 - журнал событий;
 - установка панели и ноды через Docker Compose;
+- мастер первого запуска без ручной подготовки `.env`;
+- bcrypt-хеширование пароля владельца и автоматически созданный ключ сессий;
 - блокировка loopback/private/link-local целей по умолчанию.
 
 ## Быстрый запуск панели
 
 ```bash
-cp .env.example .env
-```
-
-Задайте минимум:
-
-```dotenv
-ADMIN_PASSWORD=очень-длинный-пароль
-SESSION_SECRET=случайная-строка-минимум-32-символа
-PUBLIC_URL=https://proxy.example.com
-COOKIE_SECURE=true
-```
-
-Запустите:
-
-```bash
 docker compose up -d --build
 ```
 
-Панель слушает только `127.0.0.1:8088`. Публикуйте её через nginx/Caddy с HTTPS.
+Откройте `http://127.0.0.1:8088` и пройдите короткий мастер: укажите логин владельца, пароль и публичный URL панели. Пароль сохраняется только как bcrypt-хеш, а ключ подписи сессий генерируется автоматически. Оба значения живут в Docker volume `proxyfleet-control-data`; файл `.env` не нужен.
+
+Панель слушает только `127.0.0.1:8088`. Для внешнего доступа публикуйте её через nginx/Caddy с HTTPS. Secure-cookie включается автоматически по TLS или заголовку `X-Forwarded-Proto: https`.
 
 ## Подключение ноды
 
@@ -47,13 +36,7 @@ docker compose up -d --build
 2. Нажмите «Добавить ноду».
 3. Выполните сгенерированную Docker-команду на VPS.
 
-До публикации образа в registry можно развернуть ноду из checkout:
-
-```bash
-cp .env.example .env
-# В .env укажите CONTROL_URL и одноразовый ENROLL_TOKEN из панели.
-docker compose -f docker-compose.node.yml up -d --build
-```
+Панель сама выдаёт готовую `docker run` команду с адресом control plane и одноразовым ключом — отдельный конфигурационный файл на ноде не нужен.
 
 После первого подключения enrollment token становится недействительным. Постоянный ключ агента хранится в Docker volume `proxyfleet-node-data`.
 
@@ -85,16 +68,24 @@ ufw allow from <IP_СЕРВЕРА_NEXUS> to any port 1080 proto tcp
 
 Не публикуйте HTTP/SOCKS5 порты всему интернету даже при включённой авторизации.
 
-## Переменные control plane
+## Структура проекта
 
-| Переменная | Назначение |
-|---|---|
-| `ADMIN_USERNAME` | Логин администратора |
-| `ADMIN_PASSWORD` | Пароль, минимум 12 символов |
-| `SESSION_SECRET` | Ключ подписи сессий, минимум 32 символа |
-| `PUBLIC_URL` | Публичный HTTPS URL панели для агентов |
-| `NODE_IMAGE` | Образ, используемый в генерируемой команде установки |
-| `COOKIE_SECURE` | `true` при работе панели через HTTPS |
+```text
+cmd/proxyfleet/        точка входа server/agent
+internal/agent/        proxy-движок и синхронизация ноды
+internal/control/
+  server.go            запуск HTTP-сервера и маршруты
+  auth.go              первый запуск, вход и сессии
+  nodes.go             управление нодами
+  users.go             proxy-пользователи и назначения
+  agents.go            enrollment, config и heartbeat
+  store.go             атомарное файловое хранилище
+  http_helpers.go      JSON, middleware и крипто-утилиты
+  web/                 статический интерфейс панели
+internal/model/        общие структуры control plane и агента
+```
+
+В обычном Docker-запуске настраивать переменные не требуется. `DATA_PATH`, `LISTEN_ADDR` и `NODE_IMAGE` остаются лишь необязательными техническими override-параметрами для разработки и собственного registry.
 
 ## Следующий этап
 

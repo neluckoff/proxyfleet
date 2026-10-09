@@ -7,9 +7,31 @@
   <title>ProxyFleet</title>
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="/styles.css">
+  <link rel="stylesheet" href="/setup.css">
 </head>
 <body>
   <div id="toast" class="toast" aria-live="polite"></div>
+
+  <section id="setup-screen" class="login-screen hidden">
+    <div class="login-glow"></div>
+    <form id="setup-form" class="login-card setup-card">
+      <div class="brand brand-large"><span class="brand-mark">PF</span><span><b>ProxyFleet</b><small>ПЕРВЫЙ ЗАПУСК</small></span></div>
+      <div>
+        <p class="eyebrow lime">НАСТРОЙКА ВЛАДЕЛЬЦА</p>
+        <h1>Создайте доступ к панели</h1>
+        <p class="muted">Это делается один раз. Пароль будет сохранён только как защищённый bcrypt-хеш, а ключ сессий панель создаст сама.</p>
+      </div>
+      <label>Имя владельца<input name="username" autocomplete="username" value="admin" minlength="3" maxlength="64" pattern="[A-Za-z0-9._-]+" required></label>
+      <label>Адрес панели<input name="publicUrl" type="url" autocomplete="url" placeholder="https://proxy.example.com" required><span class="field-hint">Он попадёт в команды подключения новых нод.</span></label>
+      <div class="password-grid">
+        <label>Новый пароль<input name="password" type="password" autocomplete="new-password" minlength="12" required></label>
+        <label>Повторите пароль<input name="passwordConfirm" type="password" autocomplete="new-password" minlength="12" required></label>
+      </div>
+      <button class="button primary wide" type="submit"><span>Создать владельца</span><span>→</span></button>
+      <p id="setup-error" class="form-error"></p>
+      <p class="security-note"><span>✓</span> Секреты хранятся в защищённом Docker volume, а не в <code>.env</code>.</p>
+    </form>
+  </section>
 
   <section id="login-screen" class="login-screen hidden">
     <div class="login-glow"></div>
@@ -20,7 +42,7 @@
         <h1>Управляйте всеми нодами из одного места</h1>
         <p class="muted">Войдите, чтобы открыть карту сети, пользователей и состояние Telegram.</p>
       </div>
-      <label>Логин<input name="username" autocomplete="username" value="admin" required></label>
+      <label>Логин<input name="username" autocomplete="username" placeholder="admin" required></label>
       <label>Пароль<input name="password" type="password" autocomplete="current-password" required></label>
       <button class="button primary wide" type="submit"><span>Войти в панель</span><span>→</span></button>
       <p id="login-error" class="form-error"></p>

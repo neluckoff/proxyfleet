@@ -5,22 +5,13 @@ services:
     container_name: proxyfleet-control
     build:
       context: .
-    image: ${PROXYFLEET_IMAGE:-proxyfleet:local}
+    image: proxyfleet:local
     restart: unless-stopped
     command: ["server"]
-    environment:
-      LISTEN_ADDR: ":8080"
-      DATA_PATH: /data/state.json
-      ADMIN_USERNAME: ${ADMIN_USERNAME:-admin}
-      ADMIN_PASSWORD: ${ADMIN_PASSWORD:?ADMIN_PASSWORD is required}
-      SESSION_SECRET: ${SESSION_SECRET:?SESSION_SECRET is required}
-      PUBLIC_URL: ${PUBLIC_URL:-http://localhost:8088}
-      NODE_IMAGE: ${NODE_IMAGE:-ghcr.io/neluckoff/proxyfleet:latest}
-      COOKIE_SECURE: ${COOKIE_SECURE:-false}
     volumes:
       - control_data:/data
     ports:
-      - "127.0.0.1:${CONTROL_PORT:-8088}:8080"
+      - "127.0.0.1:8088:8080"
     healthcheck:
       test: ["CMD", "wget", "-q", "-O", "-", "http://127.0.0.1:8080/health"]
       interval: 15s
