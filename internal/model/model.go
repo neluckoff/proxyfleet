@@ -3,20 +3,24 @@ package model
 import "time"
 
 type State struct {
-	Settings         *Settings         `json:"settings,omitempty"`
-	Nodes            []*Node           `json:"nodes"`
-	Users            []*ProxyUser      `json:"users"`
-	Events           []*Event          `json:"events"`
-	Activity         []*ActivitySample `json:"activity,omitempty"`
-	Traffic          []*TrafficSample  `json:"traffic,omitempty"`
-	TrafficBytesUp   int64             `json:"trafficBytesUp,omitempty"`
-	TrafficBytesDown int64             `json:"trafficBytesDown,omitempty"`
+	Settings          *Settings           `json:"settings,omitempty"`
+	Nodes             []*Node             `json:"nodes"`
+	Users             []*ProxyUser        `json:"users"`
+	PushSubscriptions []*PushSubscription `json:"pushSubscriptions,omitempty"`
+	Events            []*Event            `json:"events"`
+	Activity          []*ActivitySample   `json:"activity,omitempty"`
+	Traffic           []*TrafficSample    `json:"traffic,omitempty"`
+	TrafficBytesUp    int64               `json:"trafficBytesUp,omitempty"`
+	TrafficBytesDown  int64               `json:"trafficBytesDown,omitempty"`
 }
 
 type Settings struct {
 	AdminUsername       string    `json:"adminUsername"`
 	AdminPasswordHash   string    `json:"adminPasswordHash"`
 	SessionSecret       string    `json:"sessionSecret"`
+	DataEncryptionKey   string    `json:"dataEncryptionKey,omitempty"`
+	VAPIDPublicKey      string    `json:"vapidPublicKey,omitempty"`
+	VAPIDPrivateKey     string    `json:"vapidPrivateKey,omitempty"`
 	PublicURL           string    `json:"publicUrl"`
 	SystemName          string    `json:"systemName,omitempty"`
 	LogoDataURL         string    `json:"logoDataUrl,omitempty"`
@@ -60,14 +64,32 @@ type Node struct {
 }
 
 type ProxyUser struct {
-	ID           string    `json:"id"`
-	Name         string    `json:"name"`
-	Username     string    `json:"username"`
-	PasswordHash string    `json:"passwordHash"`
-	Protocol     string    `json:"protocol,omitempty"`
-	NodeIDs      []string  `json:"nodeIds"`
-	Enabled      bool      `json:"enabled"`
-	CreatedAt    time.Time `json:"createdAt"`
+	ID                    string    `json:"id"`
+	Name                  string    `json:"name"`
+	Username              string    `json:"username"`
+	PasswordHash          string    `json:"passwordHash"`
+	Protocol              string    `json:"protocol,omitempty"`
+	Source                string    `json:"source,omitempty"`
+	Provider              string    `json:"provider,omitempty"`
+	ExternalURLCiphertext string    `json:"externalUrlCiphertext,omitempty"`
+	ExternalLastCheckedAt time.Time `json:"externalLastCheckedAt,omitempty"`
+	ExternalLatencyMS     int64     `json:"externalLatencyMs,omitempty"`
+	ExternalLastError     string    `json:"externalLastError,omitempty"`
+	NodeIDs               []string  `json:"nodeIds"`
+	Enabled               bool      `json:"enabled"`
+	CreatedAt             time.Time `json:"createdAt"`
+}
+
+type PushSubscription struct {
+	ID        string    `json:"id"`
+	Endpoint  string    `json:"endpoint"`
+	P256DH    string    `json:"p256dh"`
+	Auth      string    `json:"auth"`
+	Nodes     bool      `json:"nodes"`
+	Proxies   bool      `json:"proxies"`
+	System    bool      `json:"system"`
+	CreatedAt time.Time `json:"createdAt"`
+	UpdatedAt time.Time `json:"updatedAt"`
 }
 
 type Event struct {

@@ -17,7 +17,7 @@ type store struct {
 }
 
 func openStore(path string) (*store, error) {
-	s := &store{path: path, state: model.State{Nodes: []*model.Node{}, Users: []*model.ProxyUser{}, Events: []*model.Event{}, Activity: []*model.ActivitySample{}, Traffic: []*model.TrafficSample{}}}
+	s := &store{path: path, state: model.State{Nodes: []*model.Node{}, Users: []*model.ProxyUser{}, PushSubscriptions: []*model.PushSubscription{}, Events: []*model.Event{}, Activity: []*model.ActivitySample{}, Traffic: []*model.TrafficSample{}}}
 	if err := os.MkdirAll(filepath.Dir(path), 0o700); err != nil {
 		return nil, err
 	}
@@ -41,10 +41,16 @@ func openStore(path string) (*store, error) {
 		s.state.Users = []*model.ProxyUser{}
 	}
 	for _, user := range s.state.Users {
+		if user.Source == "" {
+			user.Source = "managed"
+		}
 		if user.Protocol != "http" && user.Protocol != "socks5" && user.Protocol != "both" {
 			// Credentials created before protocol selection existed worked on both listeners.
 			user.Protocol = "both"
 		}
+	}
+	if s.state.PushSubscriptions == nil {
+		s.state.PushSubscriptions = []*model.PushSubscription{}
 	}
 	if s.state.Events == nil {
 		s.state.Events = []*model.Event{}

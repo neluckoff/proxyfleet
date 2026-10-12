@@ -112,14 +112,16 @@ func analyticsSnapshot(state *model.State, now time.Time) map[string]any {
 		}
 	}
 
-	enabled, disabled, assigned, unassigned := 0, 0, 0, 0
+	enabled, disabled, assigned, unassigned, external := 0, 0, 0, 0, 0
 	for _, user := range state.Users {
 		if user.Enabled {
 			enabled++
 		} else {
 			disabled++
 		}
-		if len(user.NodeIDs) > 0 {
+		if proxySource(user) == "external" {
+			external++
+		} else if len(user.NodeIDs) > 0 {
 			assigned++
 		} else {
 			unassigned++
@@ -142,7 +144,7 @@ func analyticsSnapshot(state *model.State, now time.Time) map[string]any {
 	lifetime := trafficPeriod{BytesUp: state.TrafficBytesUp, BytesDown: state.TrafficBytesDown}
 	lifetime.BytesTotal = lifetime.BytesUp + lifetime.BytesDown
 	proxyStats := map[string]any{
-		"total": len(state.Users), "enabled": enabled, "disabled": disabled, "assigned": assigned, "unassigned": unassigned,
+		"total": len(state.Users), "enabled": enabled, "disabled": disabled, "assigned": assigned, "unassigned": unassigned, "external": external,
 	}
 	return map[string]any{
 		"traffic": map[string]any{

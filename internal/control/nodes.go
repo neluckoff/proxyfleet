@@ -63,7 +63,7 @@ func (s *server) createNode(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusInternalServerError, "Не удалось сохранить ноду")
 		return
 	}
-	s.notify("Создана нода: " + node.Name)
+	s.notifyCategory("nodes", "Создана нода: "+node.Name)
 	writeJSON(w, http.StatusCreated, map[string]any{"node": publicNode(node), "enrollToken": token, "installCommand": s.installCommand(token)})
 }
 
@@ -120,7 +120,7 @@ func (s *server) updateNode(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "Не удалось обновить ноду: "+err.Error())
 		return
 	}
-	s.notify("Обновлена конфигурация ноды: " + updated.Name)
+	s.notifyCategory("nodes", "Обновлена конфигурация ноды: "+updated.Name)
 	writeJSON(w, http.StatusOK, publicNode(updated))
 }
 
@@ -153,7 +153,7 @@ func (s *server) deleteNode(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusInternalServerError, "Не удалось удалить ноду")
 		return
 	}
-	s.notify("Удалена нода: " + deletedName)
+	s.notifyCategory("nodes", "Удалена нода: "+deletedName)
 	writeJSON(w, http.StatusOK, map[string]any{"ok": true})
 }
 
@@ -181,7 +181,7 @@ func (s *server) rotateEnrollment(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusInternalServerError, "Не удалось перевыпустить ключ")
 		return
 	}
-	s.notify("Перевыпущен ключ подключения ноды: " + nodeName)
+	s.notifyCategory("nodes", "Перевыпущен ключ подключения ноды: "+nodeName)
 	writeJSON(w, http.StatusOK, map[string]any{"enrollToken": token, "installCommand": s.installCommand(token)})
 }
 

@@ -12,6 +12,7 @@ import (
 	"strings"
 	"time"
 
+	webpush "github.com/SherClockHolmes/webpush-go"
 	"github.com/neluckoff/proxyfleet/internal/model"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -51,9 +52,16 @@ func (s *server) setup(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusInternalServerError, "Не удалось защитить пароль")
 		return
 	}
+	vapidPrivateKey, vapidPublicKey, err := webpush.GenerateVAPIDKeys()
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "Не удалось подготовить PWA-уведомления")
+		return
+	}
 	settings := &model.Settings{
 		AdminUsername: input.Username, AdminPasswordHash: string(passwordHash),
-		SessionSecret: randomToken(32), PublicURL: input.PublicURL, SystemName: "ProxyFleet", CreatedAt: time.Now().UTC(),
+		SessionSecret: randomToken(32), DataEncryptionKey: randomToken(32),
+		VAPIDPublicKey: vapidPublicKey, VAPIDPrivateKey: vapidPrivateKey,
+		PublicURL: input.PublicURL, SystemName: "ProxyFleet", CreatedAt: time.Now().UTC(),
 	}
 	err = s.store.update(func(state *model.State) error {
 		if state.Settings != nil {

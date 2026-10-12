@@ -1,4 +1,4 @@
-const state = { me: null, settings: { systemName: 'ProxyFleet', logoDataUrl: '', telegram: {} }, pendingLogoDataURL: null, platform: { version: '0.1.0' }, overview: {}, analytics: {}, activity: { samples: [] }, nodes: [], proxies: [], events: [], view: 'dashboard', refreshTimer: null, editingNodeId: null, selectedProxyId: null, recap: { background: 'gradient', accent: '#64d2ff' } }
+const state = { me: null, settings: { systemName: 'ProxyFleet', logoDataUrl: '', telegram: {} }, pendingLogoDataURL: null, platform: { version: '0.2.0' }, overview: {}, analytics: {}, activity: { samples: [] }, nodes: [], proxies: [], events: [], pwa: { supported: false, publicKey: '', subscription: null }, pwaSubscription: null, installPrompt: null, view: 'dashboard', refreshTimer: null, editingNodeId: null, selectedProxyId: null, recap: { background: 'gradient', accent: '#64d2ff' } }
 const routes = { dashboard: '/', nodes: '/nodes', proxies: '/proxies', events: '/events', settings: '/settings' }
 const pageTitles = { dashboard: 'Обзор', nodes: 'Ноды', proxies: 'Прокси', events: 'Журнал', settings: 'Настройки' }
 
@@ -41,6 +41,7 @@ function httpErrorMessage(status) {
 
 async function bootstrap() {
   window.I18n?.apply()
+  await registerPWA()
   try {
     const setup = await api('/api/setup/status')
     const branding = await api('/api/branding')
@@ -72,9 +73,36 @@ async function loadPlatform() {
 
 async function loadSettings() {
   state.settings = await api('/api/settings')
+  await loadPWASettings()
   state.pendingLogoDataURL = null
   applyBranding()
   renderSettings()
+}
+
+async function registerPWA() {
+  if (!('serviceWorker' in navigator)) return
+  try {
+    await navigator.serviceWorker.register('/service-worker.js')
+    state.pwa.supported = true
+  } catch (error) {
+    state.pwa.supported = false
+  }
+}
+
+async function loadPWASettings() {
+  if (!state.pwa.supported || !('PushManager' in window) || !('Notification' in window)) {
+    state.pwa = { ...state.pwa, supported: false }
+    return
+  }
+  try {
+    const registration = await navigator.serviceWorker.ready
+    state.pwaSubscription = await registration.pushManager.getSubscription()
+    const endpoint = state.pwaSubscription?.endpoint
+    const suffix = endpoint ? `?endpoint=${encodeURIComponent(endpoint)}` : ''
+    state.pwa = { supported: true, ...(await api(`/api/pwa${suffix}`)) }
+  } catch (error) {
+    state.pwa = { ...state.pwa, supported: false, error: error.message }
+  }
 }
 
 function applyBranding() {
@@ -114,7 +142,38 @@ function renderSettings() {
   $('#telegram-bot-name').textContent = telegram.botUsername ? `@${telegram.botUsername}` : telegram.configured ? 'Токен сохранён' : 'Бот ещё не подключён'
   $('#telegram-connection-copy').textContent = telegram.configured ? 'Настройки можно проверить тестовым сообщением.' : 'Сохраните настройки и отправьте тестовое сообщение.'
   $('#telegram-disconnect').classList.toggle('hidden', !telegram.configured)
+  renderPWASettings()
   window.I18n?.apply($('#view-settings'))
+}
+
+function renderPWASettings() {
+  const supported = Boolean(state.pwa.supported)
+  const subscription = state.pwaSubscription
+  const connected = Boolean(subscription && state.pwa.subscription)
+  const preferences = state.pwa.subscription?.preferences || { nodes: true, proxies: true, system: true }
+  const enabled = $('#pwa-notifications-enabled')
+  enabled.checked = connected
+  enabled.disabled = !supported
+  $('#pwa-preferences').disabled = !connected
+  $('#pwa-save').disabled = !connected
+  $('#pwa-test').disabled = !connected
+  ;['nodes', 'proxies', 'system'].forEach(category => {
+    $('#pwa-form').elements.namedItem(category).checked = preferences[category] !== false
+  })
+  const status = $('#pwa-status')
+  status.className = `settings-status ${connected ? 'connected' : supported ? 'disabled' : ''}`
+  status.textContent = connected ? 'Подключено' : supported ? 'Выключено' : 'Не поддерживается'
+  const installed = isPWAInstalled()
+  $('#pwa-install-title').textContent = installed ? 'Приложение установлено' : 'Веб-приложение'
+  $('#pwa-install-copy').textContent = installed
+    ? 'ProxyFleet уже открыт или установлен как отдельное приложение.'
+    : state.installPrompt ? 'Браузер готов установить ProxyFleet отдельным приложением.' : 'Установите панель через меню браузера, когда станет доступна установка.'
+  $('#pwa-install').classList.toggle('hidden', installed)
+  $('#pwa-install').disabled = !state.installPrompt
+}
+
+function isPWAInstalled() {
+  return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true
 }
 
 function renderBrandingPreview(logo) {
@@ -235,7 +294,7 @@ function renderAnalytics() {
   $('#analytics-users-total').textContent = users.total || 0
   $('#analytics-users-enabled').textContent = users.enabled || 0
   $('#analytics-users-disabled').textContent = users.disabled || 0
-  $('#analytics-users-unassigned').textContent = users.unassigned || 0
+  $('#analytics-users-unassigned').textContent = users.external || 0
 
   $('#analytics-telemetry-nodes').textContent = formatAgents(system.telemetryNodes || 0)
   $('#analytics-heap').textContent = formatBytes(system.heapBytes || 0)
@@ -277,7 +336,7 @@ function renderRecap() {
   $('#recap-memory').textContent = formatBytes(system.hostMemoryUsedBytes || 0)
   $('#recap-month').textContent = new Intl.DateTimeFormat(window.I18n?.localeTag() || 'ru-RU', { month: 'long', year: 'numeric' }).format(new Date()).toUpperCase()
   $('#recap-note').textContent = $('#recap-note-input').value.trim() || tr('Private infrastructure')
-  $('#recap-version').textContent = `v${state.platform.version || state.me?.version || '0.1.0'}`
+  $('#recap-version').textContent = `v${state.platform.version || state.me?.version || '0.2.0'}`
   const card = $('#recap-card')
   card.className = `recap-card background-${state.recap.background}`
   card.style.setProperty('--recap-accent', state.recap.accent)
@@ -363,7 +422,7 @@ function drawRecapCanvas() {
   ctx.font = '600 25px system-ui, sans-serif'
   ctx.fillText(($('#recap-note-input').value.trim() || tr('Private infrastructure')).slice(0, 42), 76, 1137)
   ctx.textAlign = 'right'
-  ctx.fillText(`v${state.platform.version || state.me?.version || '0.1.0'}`, 884, 1137)
+  ctx.fillText(`v${state.platform.version || state.me?.version || '0.2.0'}`, 884, 1137)
   return canvas
 }
 
@@ -480,7 +539,7 @@ function renderProxies() {
     <td><span class="protocol-chip ${proxy.protocol}">${proxyProtocolLabel(proxy.protocol)}</span></td>
     <td class="proxy-endpoint">${proxy.endpoint ? `<code>${escapeHTML(proxy.endpoint)}</code>` : '<span class="muted">Адрес не задан</span>'}</td>
     <td><code>${escapeHTML(proxy.username)}</code></td>
-    <td class="proxy-node-cell"><b>${escapeHTML(proxy.nodeName || 'Нода не назначена')}</b><small>${escapeHTML(proxy.nodeRegion || '')}</small></td>
+    <td class="proxy-node-cell"><b>${escapeHTML(proxy.source === 'external' ? proxy.provider || 'Внешний прокси' : proxy.nodeName || 'Нода не назначена')}</b><small>${escapeHTML(proxy.source === 'external' ? 'внешний источник' : proxy.nodeRegion || '')}</small></td>
     <td><span class="status-pill ${proxy.status}">${proxyStatusText(proxy.status)}</span></td>
     <td class="muted proxy-created-cell">${formatCompactDate(proxy.createdAt)}</td>
     <td><button class="text-button" type="button" data-manage-proxy="${proxy.id}">Управлять</button></td>
@@ -556,15 +615,16 @@ function openEditNodeDialog(node) {
 }
 
 function openProxyDialog() {
-  if (!state.nodes.length) return showToast('Сначала добавьте хотя бы одну ноду')
   const form = $('#proxy-form')
   form.reset()
   $('[data-form-error]', form).textContent = ''
-  $('#proxy-node-select').innerHTML = state.nodes.map(node => {
+  $('#proxy-node-select').innerHTML = state.nodes.length ? state.nodes.map(node => {
     const host = node.advertisedHost || node.publicIp
     const suffix = host ? `${host} · ${statusText(node.status)}` : tr('нет публичного адреса')
     return `<option value="${node.id}">${escapeHTML(node.name)} — ${escapeHTML(suffix)}</option>`
-  }).join('')
+  }).join('') : '<option value="">Сначала добавьте ноду</option>'
+  if (!state.nodes.length) form.elements.namedItem('source').value = 'external'
+  syncProxySourceFields()
   updateProxyPreview()
   window.I18n?.apply($('#proxy-dialog'))
   $('#proxy-dialog').showModal()
@@ -572,6 +632,10 @@ function openProxyDialog() {
 
 function updateProxyPreview() {
   const form = $('#proxy-form')
+  if (form.elements.namedItem('source').value === 'external') {
+    $('#proxy-create-preview').textContent = maskProxyInput(form.elements.namedItem('externalUrl').value) || tr('Вставьте строку подключения внешнего прокси')
+    return
+  }
   const node = state.nodes.find(item => item.id === form.elements.namedItem('nodeId').value)
   const protocol = form.elements.namedItem('protocol').value || 'http'
   const username = form.elements.namedItem('username').value.trim() || 'login'
@@ -580,6 +644,33 @@ function updateProxyPreview() {
   $('#proxy-create-preview').textContent = host
     ? `${protocol}://${username}:••••@${host}:${port}`
     : tr('Сначала укажите публичный адрес выбранной ноды')
+}
+
+function syncProxySourceFields() {
+  const form = $('#proxy-form')
+  const external = form.elements.namedItem('source').value === 'external'
+  const managedFields = $('#managed-proxy-fields')
+  const externalFields = $('#external-proxy-fields')
+  managedFields.classList.toggle('hidden', external)
+  externalFields.classList.toggle('hidden', !external)
+  $$('input, select, button', managedFields).forEach(control => { control.disabled = external })
+  $$('input, select, button', externalFields).forEach(control => { control.disabled = !external })
+  if (!external && !state.nodes.length) {
+    form.elements.namedItem('source').value = 'external'
+    syncProxySourceFields()
+  }
+}
+
+function maskProxyInput(value) {
+  const input = String(value || '').trim()
+  if (!input) return ''
+  try {
+    const parsed = new URL(input)
+    if (parsed.username) parsed.password = parsed.password ? '••••' : ''
+    return parsed.toString().replace(/\/$/, '')
+  } catch (error) {
+    return input.replace(/(\/\/[^:@/]+:)[^@/]+@/, '$1••••@')
+  }
 }
 
 function openProxyDetail(proxy) {
@@ -591,10 +682,22 @@ function openProxyDetail(proxy) {
   status.textContent = proxyStatusText(proxy.status)
   $('#proxy-detail-status-copy').textContent = proxyStatusDescription(proxy.status)
   $('#proxy-detail-url').textContent = proxy.maskedUrl || tr('Адрес появится после настройки ноды')
-  $('#proxy-detail-node').textContent = proxy.nodeName || tr('Не назначена')
+  const external = proxy.source === 'external'
+  $('#proxy-detail-source-label').textContent = external ? tr('Источник') : tr('Нода')
+  $('#proxy-detail-node').textContent = external ? proxy.provider || tr('Внешний прокси') : proxy.nodeName || tr('Не назначена')
   $('#proxy-detail-login').textContent = proxy.username
   $('#proxy-detail-endpoint').textContent = proxy.endpoint || '—'
-  $('#proxy-detail-created').textContent = formatDateTime(proxy.createdAt)
+  $('#proxy-detail-time-label').textContent = external ? tr('Последняя проверка') : tr('Создан')
+  $('#proxy-detail-created').textContent = external ? proxy.lastCheckedAt && !proxy.lastCheckedAt.startsWith('0001-') ? `${formatDateTime(proxy.lastCheckedAt)}${proxy.latencyMs ? ` · ${proxy.latencyMs} мс` : ''}` : tr('Ещё не проверялся') : formatDateTime(proxy.createdAt)
+  $('#proxy-detail-url-copy').textContent = external
+    ? tr('Реквизиты зашифрованы. Полную ссылку можно показать по отдельному действию.')
+    : tr('Пароль скрыт. Полная ссылка повторно выдаётся при смене пароля.')
+  $('#proxy-managed-config').classList.toggle('hidden', external)
+  $('#proxy-external-config').classList.toggle('hidden', !external)
+  $('#proxy-external-actions').classList.toggle('hidden', !external)
+  $('#proxy-reset-password').classList.toggle('hidden', external)
+  $('#proxy-edit-provider').value = proxy.provider || ''
+  $('#proxy-edit-external-url').value = ''
   $('#proxy-edit-protocol').value = proxy.protocol === 'socks5' ? 'socks5' : 'http'
   const nodeSelect = $('#proxy-edit-node')
   nodeSelect.innerHTML = state.nodes.map(node => {
@@ -604,7 +707,9 @@ function openProxyDetail(proxy) {
   }).join('')
   nodeSelect.value = state.nodes.some(node => node.id === proxy.nodeId) ? proxy.nodeId : state.nodes[0]?.id || ''
   const toggle = $('#proxy-toggle')
-  toggle.textContent = proxy.enabled ? tr('Отключить прокси') : tr('Включить прокси')
+  toggle.textContent = external
+    ? proxy.enabled ? tr('Исключить из использования') : tr('Вернуть в использование')
+    : proxy.enabled ? tr('Отключить прокси') : tr('Включить прокси')
   toggle.classList.toggle('danger', proxy.enabled)
   window.I18n?.apply($('#proxy-detail-dialog'))
   $('#proxy-detail-dialog').showModal()
@@ -813,6 +918,114 @@ $('#telegram-disconnect').addEventListener('click', async () => {
   } catch (error) { showToast(error.message) }
 })
 
+window.addEventListener('beforeinstallprompt', event => {
+  event.preventDefault()
+  state.installPrompt = event
+  if (!$('#view-settings').classList.contains('hidden')) renderPWASettings()
+})
+
+window.addEventListener('appinstalled', () => {
+  state.installPrompt = null
+  renderPWASettings()
+  showToast('ProxyFleet установлен как приложение')
+})
+
+$('#pwa-install').addEventListener('click', async () => {
+  if (!state.installPrompt) return
+  await state.installPrompt.prompt()
+  await state.installPrompt.userChoice
+  state.installPrompt = null
+  renderPWASettings()
+})
+
+$('#pwa-notifications-enabled').addEventListener('change', async event => {
+  event.currentTarget.disabled = true
+  try {
+    if (event.currentTarget.checked) await enablePWANotifications()
+    else await disablePWANotifications()
+    await loadPWASettings()
+    renderPWASettings()
+  } catch (error) {
+    event.currentTarget.checked = Boolean(state.pwaSubscription && state.pwa.subscription)
+    showToast(error.message)
+  } finally {
+    event.currentTarget.disabled = !state.pwa.supported
+  }
+})
+
+$('#pwa-form').addEventListener('submit', async event => {
+  event.preventDefault()
+  if (!state.pwaSubscription) return
+  try {
+    await savePWASubscription(state.pwaSubscription)
+    await loadPWASettings()
+    renderPWASettings()
+    showToast('Настройки push-уведомлений сохранены')
+  } catch (error) { showToast(error.message) }
+})
+
+$('#pwa-test').addEventListener('click', async event => {
+  if (!state.pwaSubscription) return
+  const button = event.currentTarget
+  const previous = button.textContent
+  button.disabled = true
+  button.textContent = tr('Отправляем…')
+  try {
+    await api('/api/pwa/test', { method: 'POST', body: JSON.stringify({ endpoint: state.pwaSubscription.endpoint }) })
+    showToast('Тестовое push-уведомление отправлено')
+  } catch (error) { showToast(error.message) }
+  finally { button.disabled = false; button.textContent = previous }
+})
+
+async function enablePWANotifications() {
+  if (!state.pwa.supported) throw new Error('Этот браузер не поддерживает push-уведомления')
+  const permission = await Notification.requestPermission()
+  if (permission !== 'granted') throw new Error('Разрешите уведомления в настройках браузера')
+  const registration = await navigator.serviceWorker.ready
+  const existing = await registration.pushManager.getSubscription()
+  const subscription = existing || await registration.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: urlBase64ToUint8Array(state.pwa.publicKey) })
+  state.pwaSubscription = subscription
+  try {
+    await savePWASubscription(subscription)
+  } catch (error) {
+    if (!existing) await subscription.unsubscribe()
+    state.pwaSubscription = existing
+    throw error
+  }
+}
+
+async function disablePWANotifications() {
+  const subscription = state.pwaSubscription
+  if (!subscription) return
+  await api('/api/pwa/subscriptions', { method: 'DELETE', body: JSON.stringify({ endpoint: subscription.endpoint }) })
+  await subscription.unsubscribe()
+  state.pwaSubscription = null
+}
+
+async function savePWASubscription(subscription) {
+  const serialized = subscription.toJSON()
+  const form = $('#pwa-form')
+  return api('/api/pwa/subscriptions', {
+    method: 'POST',
+    body: JSON.stringify({
+      endpoint: serialized.endpoint,
+      keys: serialized.keys,
+      preferences: {
+        nodes: form.elements.namedItem('nodes').checked,
+        proxies: form.elements.namedItem('proxies').checked,
+        system: form.elements.namedItem('system').checked,
+      },
+    }),
+  })
+}
+
+function urlBase64ToUint8Array(value) {
+  const padding = '='.repeat((4 - value.length % 4) % 4)
+  const base64 = (value + padding).replace(/-/g, '+').replace(/_/g, '/')
+  const raw = window.atob(base64)
+  return Uint8Array.from([...raw].map(character => character.charCodeAt(0)))
+}
+
 $('#password-form').addEventListener('submit', async event => {
   event.preventDefault()
   const form = new FormData(event.currentTarget)
@@ -858,7 +1071,10 @@ $('#nodes-grid').addEventListener('click', event => {
 })
 
 $('#proxy-form').addEventListener('input', updateProxyPreview)
-$('#proxy-form').addEventListener('change', updateProxyPreview)
+$('#proxy-form').addEventListener('change', event => {
+  if (event.target.name === 'source') syncProxySourceFields()
+  updateProxyPreview()
+})
 $('#generate-proxy-password').addEventListener('click', () => {
   const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789'
   const values = new Uint32Array(20)
@@ -869,18 +1085,25 @@ $('#generate-proxy-password').addEventListener('click', () => {
 $('#proxy-form').addEventListener('submit', async event => {
   event.preventDefault()
   const form = new FormData(event.currentTarget)
-  const node = state.nodes.find(item => item.id === form.get('nodeId'))
   const errorNode = $('[data-form-error]', event.currentTarget)
   errorNode.textContent = ''
-  if (!node?.advertisedHost && !node?.publicIp) {
-    errorNode.textContent = tr('У выбранной ноды нет публичного адреса. Добавьте его в настройках ноды.')
-    return
+  const source = form.get('source') || 'managed'
+  let payload
+  if (source === 'external') {
+    payload = { source, name: form.get('externalName'), provider: form.get('provider'), externalUrl: form.get('externalUrl') }
+  } else {
+    const node = state.nodes.find(item => item.id === form.get('nodeId'))
+    if (!node?.advertisedHost && !node?.publicIp) {
+      errorNode.textContent = tr('У выбранной ноды нет публичного адреса. Добавьте его в настройках ноды.')
+      return
+    }
+    payload = { source, name: form.get('name'), username: form.get('username'), password: form.get('password'), protocol: form.get('protocol'), nodeId: form.get('nodeId') }
   }
-  const payload = { name: form.get('name'), username: form.get('username'), password: form.get('password'), protocol: form.get('protocol'), nodeId: form.get('nodeId') }
   try {
     const result = await api('/api/proxies', { method: 'POST', body: JSON.stringify(payload) })
     $('#proxy-dialog').close()
-    showSecret('Прокси готов', 'Скопируйте готовую ссылку подключения. Она показывается только один раз:', result.proxyUrl || result.password)
+    if (source === 'external') showToast('Внешний прокси добавлен и сохранён в зашифрованном виде')
+    else showSecret('Прокси готов', 'Скопируйте готовую ссылку подключения. Она показывается только один раз:', result.proxyUrl || result.password)
     await refreshAll()
   } catch (error) { errorNode.textContent = error.message }
 })
@@ -909,7 +1132,49 @@ $('#proxy-toggle').addEventListener('click', async () => {
     await api(`/api/proxies/${proxy.id}`, { method: 'PATCH', body: JSON.stringify({ enabled: !proxy.enabled }) })
     $('#proxy-detail-dialog').close()
     await refreshAll()
-    showToast(proxy.enabled ? 'Прокси отключён' : 'Прокси включён')
+    showToast(proxy.source === 'external'
+      ? proxy.enabled ? 'Внешний прокси исключён из использования' : 'Внешний прокси возвращён в использование'
+      : proxy.enabled ? 'Прокси отключён' : 'Прокси включён')
+  } catch (error) { showToast(error.message) }
+})
+
+$('#proxy-save-external').addEventListener('click', async () => {
+  const proxy = state.proxies.find(item => item.id === state.selectedProxyId)
+  if (!proxy || proxy.source !== 'external') return
+  const payload = { provider: $('#proxy-edit-provider').value }
+  const externalUrl = $('#proxy-edit-external-url').value.trim()
+  if (externalUrl) payload.externalUrl = externalUrl
+  try {
+    await api(`/api/proxies/${proxy.id}`, { method: 'PATCH', body: JSON.stringify(payload) })
+    $('#proxy-detail-dialog').close()
+    await refreshAll()
+    showToast('Внешний прокси обновлён')
+  } catch (error) { showToast(error.message) }
+})
+
+$('#proxy-check-external').addEventListener('click', async event => {
+  const proxy = state.proxies.find(item => item.id === state.selectedProxyId)
+  if (!proxy) return
+  const button = event.currentTarget
+  const previous = button.textContent
+  button.disabled = true
+  button.textContent = tr('Проверяем…')
+  try {
+    const result = await api(`/api/proxies/${proxy.id}/check`, { method: 'POST' })
+    $('#proxy-detail-dialog').close()
+    await refreshAll()
+    showToast(result.reachable ? 'Внешний прокси доступен' : 'Внешний прокси сейчас недоступен')
+  } catch (error) { showToast(error.message) }
+  finally { button.disabled = false; button.textContent = previous }
+})
+
+$('#proxy-reveal-external').addEventListener('click', async () => {
+  const proxy = state.proxies.find(item => item.id === state.selectedProxyId)
+  if (!proxy) return
+  try {
+    const result = await api(`/api/proxies/${proxy.id}/reveal`, { method: 'POST' })
+    $('#proxy-detail-dialog').close()
+    showSecret('Подключение внешнего прокси', 'Скопируйте строку подключения и храните её в безопасном месте:', result.proxyUrl)
   } catch (error) { showToast(error.message) }
 })
 
@@ -972,8 +1237,8 @@ function showToast(message) {
 
 function setEmpty(root, text) { root.className = 'empty-state'; root.textContent = text }
 function statusText(status) { return tr(({ online: 'Онлайн', offline: 'Офлайн', pending: 'Ожидает' })[status] || status) }
-function proxyStatusText(status) { return tr(({ online: 'Готов', offline: 'Нода офлайн', pending: 'Ожидает ноду', disabled: 'Отключён', unassigned: 'Без ноды' })[status] || status) }
-function proxyStatusDescription(status) { return tr(({ online: 'Прокси готов принимать подключения', offline: 'Нода не отвечает — подключения временно недоступны', pending: 'Агент ноды ещё не подключился к панели', disabled: 'Доступ выключен вручную', unassigned: 'Выберите ноду для этого прокси' })[status] || '') }
+function proxyStatusText(status) { return tr(({ online: 'Готов', offline: 'Нода офлайн', pending: 'Ожидает ноду', disabled: 'Отключён', unassigned: 'Без ноды', unchecked: 'Не проверен', unavailable: 'Недоступен' })[status] || status) }
+function proxyStatusDescription(status) { return tr(({ online: 'Прокси готов принимать подключения', offline: 'Нода не отвечает — подключения временно недоступны', pending: 'Агент ноды ещё не подключился к панели', disabled: 'Доступ выключен вручную', unassigned: 'Выберите ноду для этого прокси', unchecked: 'Внешний прокси ещё не проверялся', unavailable: 'Адрес внешнего прокси не отвечает' })[status] || '') }
 function proxyProtocolLabel(protocol) { return protocol === 'socks5' ? 'SOCKS5' : protocol === 'both' ? tr('HTTP + SOCKS5') : 'HTTP' }
 function formatBytes(value) { const english = window.I18n?.locale() === 'en'; if (!value) return english ? '0 B' : '0 Б'; const units = english ? ['B','KB','MB','GB','TB'] : ['Б','КБ','МБ','ГБ','ТБ']; const i = Math.min(Math.floor(Math.log(value) / Math.log(1024)), units.length - 1); const number = new Intl.NumberFormat(window.I18n?.localeTag() || 'ru-RU', { maximumFractionDigits: i ? 1 : 0 }).format(value / 1024 ** i); return `${number} ${units[i]}` }
 function formatDuration(value) { const seconds = Number(value) || 0; if (!seconds) return '—'; const days = Math.floor(seconds / 86400); const hours = Math.floor((seconds % 86400) / 3600); const minutes = Math.floor((seconds % 3600) / 60); if (window.I18n?.locale() === 'en') { if (days) return `${days}d ${hours}h`; return hours ? `${hours}h ${minutes}m` : `${minutes}m` } if (days) return `${days} д ${hours} ч`; return hours ? `${hours} ч ${minutes} мин` : `${minutes} мин` }

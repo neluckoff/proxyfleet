@@ -13,7 +13,7 @@ import (
 	"time"
 )
 
-const version = "0.1.0"
+const version = "0.2.0"
 
 //go:embed web/*
 var webAssets embed.FS
@@ -118,12 +118,18 @@ func (s *server) adminMux() http.Handler {
 	mux.HandleFunc("POST /api/proxies", s.createUser)
 	mux.HandleFunc("PATCH /api/proxies/{id}", s.updateUser)
 	mux.HandleFunc("DELETE /api/proxies/{id}", s.deleteUser)
+	mux.HandleFunc("POST /api/proxies/{id}/reveal", s.revealExternalProxy)
+	mux.HandleFunc("POST /api/proxies/{id}/check", s.checkExternalProxy)
 	mux.HandleFunc("GET /api/events", s.listEvents)
 	mux.HandleFunc("GET /api/settings", s.getSettings)
 	mux.HandleFunc("PATCH /api/settings/branding", s.updateBranding)
 	mux.HandleFunc("PATCH /api/settings/telegram", s.updateTelegramSettings)
 	mux.HandleFunc("POST /api/settings/telegram/test", s.testTelegramSettings)
 	mux.HandleFunc("POST /api/settings/password", s.changePassword)
+	mux.HandleFunc("GET /api/pwa", s.pwaInfo)
+	mux.HandleFunc("POST /api/pwa/subscriptions", s.subscribePWA)
+	mux.HandleFunc("DELETE /api/pwa/subscriptions", s.unsubscribePWA)
+	mux.HandleFunc("POST /api/pwa/test", s.testPWA)
 	return mux
 }
 

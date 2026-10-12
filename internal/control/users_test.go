@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"strings"
 	"testing"
 
 	"github.com/neluckoff/proxyfleet/internal/model"
@@ -56,6 +58,56 @@ func TestCreateProxyReturnsConnectionURL(t *testing.T) {
 	}
 	if result.ProxyURL != "socks5://telegram_bot:a-secure-test-password@proxy.example.test:1080" {
 		t.Fatalf("unexpected proxy URL: %q", result.ProxyURL)
+	}
+}
+
+func TestExternalProxyIsEncryptedAndCanBeRevealed(t *testing.T) {
+	s := testServer(t)
+	configureTestOwner(t, s)
+	rawURL := "socks5://external-user:external-password@proxy.vendor.test:1080"
+	body, _ := json.Marshal(map[string]any{
+		"source": "external", "name": "Vendor proxy", "provider": "Example Vendor", "externalUrl": rawURL,
+	})
+	response := httptest.NewRecorder()
+	s.createUser(response, httptest.NewRequest(http.MethodPost, "/api/proxies", bytes.NewReader(body)))
+	if response.Code != http.StatusCreated {
+		t.Fatalf("create external proxy returned %d: %s", response.Code, response.Body.String())
+	}
+	var result struct {
+		Proxy struct {
+			ID        string `json:"id"`
+			Source    string `json:"source"`
+			Provider  string `json:"provider"`
+			MaskedURL string `json:"maskedUrl"`
+		} `json:"proxy"`
+	}
+	if err := json.Unmarshal(response.Body.Bytes(), &result); err != nil {
+		t.Fatal(err)
+	}
+	if result.Proxy.Source != "external" || result.Proxy.Provider != "Example Vendor" || strings.Contains(result.Proxy.MaskedURL, "external-password") {
+		t.Fatalf("external proxy public data is wrong: %#v", result.Proxy)
+	}
+	persisted, err := os.ReadFile(s.store.path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if bytes.Contains(persisted, []byte(rawURL)) || bytes.Contains(persisted, []byte("external-password")) {
+		t.Fatal("external credentials were persisted in plain text")
+	}
+
+	revealRequest := httptest.NewRequest(http.MethodPost, "/api/proxies/"+result.Proxy.ID+"/reveal", nil)
+	revealRequest.SetPathValue("id", result.Proxy.ID)
+	revealResponse := httptest.NewRecorder()
+	s.revealExternalProxy(revealResponse, revealRequest)
+	if revealResponse.Code != http.StatusOK {
+		t.Fatalf("reveal returned %d: %s", revealResponse.Code, revealResponse.Body.String())
+	}
+	var revealed map[string]string
+	if err := json.Unmarshal(revealResponse.Body.Bytes(), &revealed); err != nil {
+		t.Fatal(err)
+	}
+	if revealed["proxyUrl"] != rawURL {
+		t.Fatalf("unexpected revealed URL: %q", revealed["proxyUrl"])
 	}
 }
 

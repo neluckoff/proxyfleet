@@ -38,7 +38,7 @@ func (s *server) agentEnroll(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusUnauthorized, "Ключ подключения недействителен или уже использован")
 		return
 	}
-	s.notify("Нода подключена: " + nodeName)
+	s.notifyCategory("nodes", "Нода подключена: "+nodeName)
 	writeJSON(w, http.StatusOK, map[string]any{"nodeId": nodeID, "agentToken": agentToken})
 }
 
@@ -106,7 +106,7 @@ func (s *server) agentHeartbeat(w http.ResponseWriter, r *http.Request, authenti
 		return
 	}
 	for _, message := range notifications {
-		s.notify(message)
+		s.notifyCategory("nodes", message)
 	}
 	writeJSON(w, http.StatusOK, map[string]any{"ok": true})
 }

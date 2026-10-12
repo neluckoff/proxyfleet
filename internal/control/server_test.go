@@ -62,7 +62,7 @@ func TestInitialSetupAndLogin(t *testing.T) {
 		t.Fatalf("setup returned %d: %s", setupResponse.Code, setupResponse.Body.String())
 	}
 	settings := s.store.snapshot().Settings
-	if settings == nil || settings.SessionSecret == "" || settings.PublicURL != "https://proxy.example.test" {
+	if settings == nil || settings.SessionSecret == "" || settings.DataEncryptionKey == "" || settings.VAPIDPublicKey == "" || settings.VAPIDPrivateKey == "" || settings.PublicURL != "https://proxy.example.test" {
 		t.Fatalf("settings were not persisted correctly: %#v", settings)
 	}
 	if settings.AdminPasswordHash == "a-very-long-password" || bcrypt.CompareHashAndPassword([]byte(settings.AdminPasswordHash), []byte("a-very-long-password")) != nil {

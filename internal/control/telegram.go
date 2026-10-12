@@ -96,6 +96,11 @@ func (s *server) testTelegramSettings(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *server) notify(message string) {
+	s.notifyCategory("system", message)
+}
+
+func (s *server) notifyCategory(category, message string) {
+	s.sendPWANotifications(category, message)
 	settings := s.store.snapshot().Settings
 	if settings == nil || !settings.TelegramEnabled || settings.TelegramBotToken == "" || settings.TelegramChatID == "" {
 		return
@@ -139,7 +144,7 @@ func (s *server) monitorOfflineNodes(ctx context.Context) {
 				return nil
 			})
 			for _, message := range messages {
-				s.notify(message)
+				s.notifyCategory("nodes", message)
 			}
 		}
 	}
