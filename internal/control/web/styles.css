@@ -73,6 +73,7 @@ button { color: inherit; }
 .recap-trigger { border-color: rgba(191,90,242,.28); color: #bf5af2; }
 .recap-trigger svg { width: 22px; height: 22px; fill: currentColor; stroke: none; }
 .utility-logout { border-color: rgba(100,210,255,.28); color: #64d2ff; }
+.utility-logout svg { width: 22px; height: 22px; stroke-width: 2.3; }
 .language-control { position: relative; }
 .language-toggle svg { width: 22px; height: 22px; stroke-width: 2.1; }
 .language-menu { position: absolute; top: calc(100% + 12px); right: 0; width: 190px; padding: 8px; border: 1px solid rgba(255,255,255,.14); border-radius: 18px; background: #202024; box-shadow: 0 22px 60px rgba(0,0,0,.42); }
