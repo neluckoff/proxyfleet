@@ -5,7 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <meta name="description" content="ProxyFleet — центральное управление приватными proxy-нодами">
   <title>ProxyFleet</title>
-  <link id="app-favicon" rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link id="app-favicon" rel="icon" href="/favicon.png">
+  <link rel="apple-touch-icon" href="/logo.png">
   <link rel="stylesheet" href="/styles.css">
   <link rel="stylesheet" href="/setup.css">
 </head>
@@ -14,7 +15,7 @@
 
   <section id="setup-screen" class="login-screen hidden">
     <div class="auth-aside">
-      <div class="brand brand-large"><span class="brand-mark" data-brand-mark><span class="hidden" data-brand-initials>PF</span><img data-brand-default-logo src="/logo.svg" alt=""><img class="hidden" data-brand-logo alt=""></span><span><b data-system-name>ProxyFleet</b><small>CONTROL PLANE</small></span></div>
+      <div class="brand brand-large"><span class="brand-mark" data-brand-mark><span class="hidden" data-brand-initials>PF</span><img data-brand-default-logo src="/logo.png" alt=""><img class="hidden" data-brand-logo alt=""></span><span><b data-system-name>ProxyFleet</b><small>CONTROL PLANE</small></span></div>
       <div class="auth-aside-copy">
         <span class="auth-label">ПЕРВЫЙ ЗАПУСК</span>
         <h2>Один центр управления всей proxy-инфраструктурой.</h2>
@@ -42,7 +43,7 @@
 
   <section id="login-screen" class="login-screen hidden">
     <div class="auth-aside">
-      <div class="brand brand-large"><span class="brand-mark" data-brand-mark><span class="hidden" data-brand-initials>PF</span><img data-brand-default-logo src="/logo.svg" alt=""><img class="hidden" data-brand-logo alt=""></span><span><b data-system-name>ProxyFleet</b><small>CONTROL PLANE</small></span></div>
+      <div class="brand brand-large"><span class="brand-mark" data-brand-mark><span class="hidden" data-brand-initials>PF</span><img data-brand-default-logo src="/logo.png" alt=""><img class="hidden" data-brand-logo alt=""></span><span><b data-system-name>ProxyFleet</b><small>CONTROL PLANE</small></span></div>
       <div class="auth-aside-copy">
         <span class="auth-label">PRIVATE INFRASTRUCTURE</span>
         <h2>Ваша сеть. Ваши серверы. Ваши правила.</h2>
@@ -85,7 +86,7 @@
       </button>
     </div>
     <aside class="sidebar" aria-label="Основная навигация">
-      <div class="brand"><span class="brand-mark" data-brand-mark><span class="hidden" data-brand-initials>PF</span><img data-brand-default-logo src="/logo.svg" alt=""><img class="hidden" data-brand-logo alt=""></span><span><b data-system-name>ProxyFleet</b><small>CONTROL PLANE</small></span></div>
+      <div class="brand"><span class="brand-mark" data-brand-mark><span class="hidden" data-brand-initials>PF</span><img data-brand-default-logo src="/logo.png" alt=""><img class="hidden" data-brand-logo alt=""></span><span><b data-system-name>ProxyFleet</b><small>CONTROL PLANE</small></span></div>
       <nav>
         <p class="nav-section">ОБЗОР</p>
         <a class="nav-item active" href="/" data-view="dashboard"><span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M4 13h6V4H4v9Zm0 7h6v-4H4v4Zm10 0h6v-9h-6v9Zm0-16v4h6V4h-6Z"/></svg></span>Обзор</a>
@@ -214,7 +215,7 @@
             <div class="settings-card-head"><div><span class="settings-number">01</span><h2>Оформление</h2><p>Название и логотип, которые видны в панели и на экране входа.</p></div></div>
             <form id="branding-form" class="settings-form">
               <div class="branding-control">
-                <div id="branding-preview" class="branding-preview"><span class="hidden" data-preview-initials>PF</span><img data-preview-default-logo src="/logo.svg" alt=""><img class="hidden" data-preview-logo alt="Предпросмотр логотипа"></div>
+                <div id="branding-preview" class="branding-preview"><span class="hidden" data-preview-initials>PF</span><img data-preview-default-logo src="/logo.png" alt=""><img class="hidden" data-preview-logo alt="Предпросмотр логотипа"></div>
                 <div><label class="button secondary file-button" for="branding-logo">Выбрать логотип</label><input id="branding-logo" class="visually-hidden" type="file" accept="image/png,image/jpeg,image/webp"><button id="branding-logo-remove" class="settings-text-button" type="button">Удалить</button><small>PNG, JPEG или WebP · до 512 КБ</small></div>
               </div>
               <label>Название системы<input name="systemName" minlength="2" maxlength="64" placeholder="ProxyFleet" required></label>
@@ -310,7 +311,7 @@
     <div class="recap-layout">
       <div class="recap-preview-shell">
         <article id="recap-card" class="recap-card background-gradient">
-          <div class="recap-brand"><span class="recap-brand-mark"><img data-recap-logo src="/logo.svg" alt=""><span class="hidden" data-recap-mark>PF</span></span><b data-recap-name>ProxyFleet</b></div>
+          <div class="recap-brand"><span class="recap-brand-mark"><img data-recap-logo src="/logo.png" alt=""><span class="hidden" data-recap-mark>PF</span></span><b data-recap-name>ProxyFleet</b></div>
           <div class="recap-primary"><strong id="recap-users">0</strong><span>ПРОКСИ</span></div>
           <div class="recap-pair" data-recap-section="network"><div><strong id="recap-nodes">0</strong><span>НОД</span></div><div><strong id="recap-traffic">0 Б</strong><span>ТРАФИКА</span></div></div>
           <div class="recap-divider"></div>

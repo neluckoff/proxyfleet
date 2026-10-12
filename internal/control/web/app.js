@@ -93,7 +93,7 @@ function applyBranding() {
     if (logo) image.src = logo
     else image.removeAttribute('src')
   })
-  $('#app-favicon').href = logo || '/favicon.svg'
+  $('#app-favicon').href = logo || '/favicon.png'
   if (state.view) document.title = `${name} — ${tr(pageTitles[state.view] || 'Панель')}`
 }
 
@@ -269,7 +269,7 @@ function renderRecap() {
   const name = state.settings?.systemName || 'ProxyFleet'
   $('[data-recap-name]').textContent = name
   $('[data-recap-mark]').textContent = brandInitials(name)
-  $('[data-recap-logo]').src = state.settings?.logoDataUrl || '/logo.svg'
+  $('[data-recap-logo]').src = state.settings?.logoDataUrl || '/logo.png'
   $('#recap-users').textContent = analytics.proxies?.total || analytics.users?.total || 0
   $('#recap-nodes').textContent = availability.total || 0
   $('#recap-traffic').textContent = formatBytes(traffic.lifetime?.bytesTotal || 0)
