@@ -1,118 +1,139 @@
-# ProxyFleet
+<p align="center">
+  <img src="internal/control/web/logo.png" width="112" alt="ProxyFleet logo">
+</p>
 
-[![CI](https://github.com/neluckoff/proxyfleet/actions/workflows/ci.yml/badge.svg)](https://github.com/neluckoff/proxyfleet/actions/workflows/ci.yml)
-[![Docker publish](https://github.com/neluckoff/proxyfleet/actions/workflows/docker-publish.yml/badge.svg)](https://github.com/neluckoff/proxyfleet/actions/workflows/docker-publish.yml)
-[![Go](https://img.shields.io/badge/Go-1.23+-00ADD8?logo=go&logoColor=white)](https://go.dev/)
+<h1 align="center">ProxyFleet</h1>
 
-Self-hosted control plane для управления приватными HTTP- и SOCKS5-прокси. ProxyFleet разворачивает лёгкие агенты на VPS, раздаёт им желаемую конфигурацию и собирает состояние всей инфраструктуры в одной панели.
+<p align="center">
+  A self-hosted control plane for deploying and managing distributed HTTP and SOCKS5 proxy nodes.
+</p>
 
-Проект не требует обязательного `.env`: владелец, пароль, адрес панели и внутренний сессионный секрет настраиваются при первом открытии. Состояние хранится в Docker volume.
+<p align="center">
+  <a href="https://github.com/neluckoff/proxyfleet/actions/workflows/ci.yml"><img src="https://github.com/neluckoff/proxyfleet/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+  <a href="https://github.com/neluckoff/proxyfleet/actions/workflows/docker-publish.yml"><img src="https://github.com/neluckoff/proxyfleet/actions/workflows/docker-publish.yml/badge.svg" alt="Docker publish"></a>
+  <a href="https://hub.docker.com/r/neluckoff/proxyfleet"><img src="https://img.shields.io/docker/pulls/neluckoff/proxyfleet?logo=docker&label=Docker%20Pulls" alt="Docker pulls"></a>
+  <a href="https://go.dev/"><img src="https://img.shields.io/badge/Go-1.23+-00ADD8?logo=go&logoColor=white" alt="Go 1.23+"></a>
+</p>
 
-## Возможности
+<p align="center">
+  <a href="#-quick-start-recommended">Quick start</a> ·
+  <a href="#-features">Features</a> ·
+  <a href="#%EF%B8%8F-architecture">Architecture</a> ·
+  <a href="#-updating">Updating</a> ·
+  <a href="#-contributing">Contributing</a>
+</p>
 
-- несколько proxy-нод под единым control plane;
-- несколько независимых прокси на одной ноде;
-- HTTP proxy с `CONNECT` и Basic Auth;
-- SOCKS5 proxy с логином и паролем;
-- создание, отключение, перенос и редактирование прокси без перезапуска контейнера;
-- зашифрованное хранение и мониторинг внешних HTTP/SOCKS5-прокси;
-- одноразовые enrollment-токены для подключения агентов;
-- статусы нод, heartbeat, uptime, трафик и активные соединения;
-- память Go runtime, память хоста, goroutines и load average;
-- графики активности нод и подключений;
-- журнал действий и событий инфраструктуры;
-- Telegram-уведомления с поддержкой HTTP(S)-proxy;
-- устанавливаемое PWA-приложение и Web Push с отдельными категориями уведомлений;
-- смена пароля владельца, названия и логотипа панели;
-- русский и английский интерфейс;
-- адаптивная мобильная навигация;
-- блокировка loopback, private и link-local целей по умолчанию.
+ProxyFleet keeps a private proxy fleet understandable and manageable from one web interface. A single control plane stores the desired configuration, lightweight agents connect outbound from your VPS instances, and each node can serve multiple independent authenticated proxies.
 
-## Архитектура
+There is no required `.env` file. The owner account, password, public URL, session secret, encryption key, and Web Push keys are created or configured during first-run setup and stored in a persistent Docker volume.
+
+> [!IMPORTANT]
+> Docker Hub is the recommended installation source. Building from the GitHub repository is fully supported for development, auditing, and custom images.
+
+## ✨ Features
+
+- one control plane for multiple proxy nodes;
+- multiple independent proxies on a single node;
+- authenticated HTTP proxy with `CONNECT` support;
+- authenticated SOCKS5 proxy;
+- one protocol per managed proxy, with generated connection URLs;
+- create, disable, move, and edit proxies without restarting containers;
+- encrypted storage and availability checks for third-party HTTP/SOCKS5 proxies;
+- one-time enrollment tokens for secure agent registration;
+- node heartbeat, uptime, traffic, active connections, RAM, goroutines, and load average;
+- activity and traffic analytics across the fleet;
+- infrastructure event log;
+- Telegram notifications with optional HTTP(S) proxy support;
+- installable PWA with per-device Web Push preferences;
+- configurable system name, logo, and owner password;
+- English and Russian interface;
+- responsive desktop and mobile navigation;
+- loopback, private, and link-local destination blocking by default;
+- multi-architecture images for `linux/amd64` and `linux/arm64`.
+
+## 🏗️ Architecture
 
 ```text
-Браузер
+Browser
    │ HTTPS
    ▼
-Reverse proxy (nginx/Caddy)
+Reverse proxy (nginx / Caddy)
    │ 127.0.0.1:8088
    ▼
 ProxyFleet control plane
-   │ исходящие HTTPS-запросы агентов
+   │ outbound HTTPS connections from agents
    ├───────────────┬───────────────┐
    ▼               ▼               ▼
 Agent / VPS 1   Agent / VPS 2   Agent / VPS N
-HTTP/SOCKS5     HTTP/SOCKS5     HTTP/SOCKS5
+HTTP / SOCKS5   HTTP / SOCKS5   HTTP / SOCKS5
 ```
 
-Control plane хранит желаемое состояние. Агенты самостоятельно подключаются к панели, получают конфигурацию и отправляют heartbeat. Открывать управляющий порт на proxy-нодах не требуется.
+The control plane stores desired state. Agents initiate the connection to the panel, receive their configuration, and send heartbeat data back. Proxy nodes do not need a publicly exposed management port.
 
-## Требования
+## 📦 Requirements
 
-Для обычного запуска:
+For a standard deployment:
 
-- Linux-сервер;
-- Docker Engine 24+;
+- a Linux server;
+- Docker Engine 24 or newer;
 - Docker Compose v2;
-- домен и HTTPS reverse proxy для публичной установки.
+- a domain and HTTPS reverse proxy for a public installation.
 
-Для разработки без Docker:
+For local development without Docker:
 
-- Go 1.23+;
-- Node.js только для проверки JavaScript-синтаксиса.
+- Go 1.23 or newer;
+- Node.js only for JavaScript syntax checks.
 
-## Быстрый запуск
+## 🚀 Quick start (recommended)
 
-Запуск из публичного Docker Hub-образа:
+Install the published image from [Docker Hub](https://hub.docker.com/r/neluckoff/proxyfleet):
 
 ```bash
-git clone https://github.com/neluckoff/proxyfleet.git
-cd proxyfleet
+sudo mkdir -p /opt/proxyfleet
+sudo chown -R "$USER":"$(id -gn)" /opt/proxyfleet
+cd /opt/proxyfleet
+
+curl -fsSL https://raw.githubusercontent.com/neluckoff/proxyfleet/master/docker-compose.yml \
+  -o docker-compose.yml
+
 docker compose pull
 docker compose up -d --no-build
 docker compose ps
 ```
 
-Панель откроется на `http://127.0.0.1:8088`.
+The control plane is now available at `http://127.0.0.1:8088`.
 
-При первом открытии:
+On first open:
 
-1. укажите логин владельца;
-2. задайте пароль длиной не менее 12 символов;
-3. укажите публичный HTTPS-адрес панели;
-4. завершите мастер настройки.
+1. choose the owner username;
+2. create a password with at least 12 characters;
+3. enter the public HTTPS URL of the panel;
+4. finish the setup wizard.
 
-Пароль сохраняется только как bcrypt-хеш. Секрет подписи сессий генерируется автоматически. Оба значения хранятся в volume `proxyfleet-control-data`.
+The password is stored only as a bcrypt hash. Session signing and data-encryption secrets are generated automatically. Persistent data lives in the `proxyfleet-control-data` Docker volume.
 
-### Локальная сборка образа
+### Build from GitHub instead
 
-Чтобы собрать текущий checkout самостоятельно:
+Use this option when you want to inspect or modify the source before building:
 
 ```bash
+git clone https://github.com/neluckoff/proxyfleet.git
+cd proxyfleet
 docker compose up -d --build
 ```
 
-Для собственного registry:
+To use a custom registry or immutable image tag:
 
 ```bash
-PROXYFLEET_IMAGE=registry.example.com/team/proxyfleet:1.0.0 docker compose up -d --no-build
+PROXYFLEET_IMAGE=registry.example.com/team/proxyfleet:1.0.0 \
+  docker compose up -d --no-build
 ```
 
-## Production-установка
+## 🌐 Production reverse proxy
 
-### 1. Запустите control plane
+The Compose service binds the panel to `127.0.0.1:8088` only. Publish it through HTTPS with nginx, Caddy, Traefik, or another reverse proxy.
 
-```bash
-sudo mkdir -p /opt/proxyfleet
-sudo chown -R "$USER":"$(id -gn)" /opt/proxyfleet
-git clone https://github.com/neluckoff/proxyfleet.git /opt/proxyfleet
-cd /opt/proxyfleet
-docker compose up -d --build
-```
-
-Контейнер слушает только `127.0.0.1:8088`, поэтому наружу панель следует публиковать через HTTPS.
-
-### 2. Настройте nginx
+Example nginx server:
 
 ```nginx
 server {
@@ -130,88 +151,85 @@ server {
 }
 ```
 
-Secure-cookie включается автоматически при TLS или заголовке `X-Forwarded-Proto: https`.
+Secure cookies are enabled automatically for direct TLS connections or when `X-Forwarded-Proto: https` is present.
 
-### 3. Подключите ноду
+## 🛰️ Connect a node
 
-1. Откройте раздел «Ноды».
-2. Нажмите «Добавить ноду».
-3. Укажите название, регион, публичный адрес и порты.
-4. Выполните сгенерированную команду на новом VPS.
+1. Open **Nodes** in the panel.
+2. Select **Add node**.
+3. Enter its name, region, public host, and proxy ports.
+4. Run the generated Docker command on the new VPS.
 
-Enrollment-токен действует один раз. После подключения агент получает постоянный ключ и сохраняет его в volume `proxyfleet-node-data`.
+The enrollment token is valid once. After enrollment, the agent receives a permanent credential and stores it in the `proxyfleet-node-data` volume.
 
-Если Docker Hub-образ ещё не опубликован, клонируйте репозиторий на ноду и используйте Compose:
+The generated command uses the same `neluckoff/proxyfleet:latest` image in agent mode. No additional image is required.
 
-```bash
-git clone https://github.com/neluckoff/proxyfleet.git
-cd proxyfleet
-CONTROL_URL=https://proxy.example.com \
-ENROLL_TOKEN=<TOKEN_ИЗ_ПАНЕЛИ> \
-docker compose -f docker-compose.node.yml up -d --build
-```
+## 🔐 Create and manage proxies
 
-### 4. Создайте прокси
+For a managed proxy, choose:
 
-На странице «Прокси» задайте:
+- a display name;
+- HTTP or SOCKS5;
+- the node that should serve it;
+- a username;
+- a password, or let ProxyFleet generate one.
 
-- название;
-- логин;
-- пароль или автоматическую генерацию;
-- протокол HTTP либо SOCKS5;
-- ноду, которая будет обслуживать подключение.
+The complete connection URL is shown only after creation or password rotation. Save it immediately: the control plane stores only the password hash for managed proxies.
 
-Готовая ссылка показывается только после создания или перевыпуска пароля. Сохраните её сразу: исходный пароль управляемого прокси в control plane не хранится.
+### Third-party proxies
 
-### Внешние прокси
-
-В том же окне создания переключите источник на «Внешний прокси» и вставьте приобретённую строку подключения вида:
+In the same creation dialog, select **External proxy** and paste a connection URL:
 
 ```text
 http://login:password@proxy.example.com:3128
 socks5://login:password@proxy.example.com:1080
 ```
 
-Строка шифруется перед записью в `state.json`, а в таблице и API пароль всегда маскируется. Из карточки можно проверить TCP-доступность, изменить провайдера или реквизиты и временно исключить подключение из использования в ProxyFleet. Панель не может отключить внешний прокси у его провайдера — это действие остаётся в кабинете поставщика.
+The URL is encrypted before it reaches `state.json`; passwords stay masked in the API and interface. ProxyFleet can check reachability, record latency, edit metadata, and exclude the connection from local use. It cannot disable the subscription at the external provider.
 
-## Firewall
+## 🔥 Firewall
 
-Порты HTTP/SOCKS5 следует открывать только для доверенных клиентов:
+Expose proxy ports only to trusted clients:
 
 ```bash
-sudo ufw allow from <IP_КЛИЕНТА> to any port 3128 proto tcp
-sudo ufw allow from <IP_КЛИЕНТА> to any port 1080 proto tcp
+sudo ufw allow from <CLIENT_IP> to any port 3128 proto tcp
+sudo ufw allow from <CLIENT_IP> to any port 1080 proto tcp
 ```
 
-Не открывайте proxy-порты всему интернету даже при включённой авторизации.
+Do not expose proxy ports to the whole internet, even when authentication is enabled.
 
-## Telegram-уведомления
+## 🔔 Notifications and PWA
 
-В разделе «Настройки» можно указать:
+### Telegram
 
-- Bot Token;
-- Chat ID;
-- HTTP(S)-proxy для доступа к Telegram;
-- состояние отправки уведомлений.
+The **Settings** page accepts a bot token, chat ID, and optional HTTP(S) proxy URL. The connection test calls `getMe` and sends a test message. The saved token is never returned to the browser.
 
-Кнопка проверки вызывает `getMe`, затем отправляет тестовое сообщение. Токен не возвращается браузеру после сохранения.
+Notifications cover node enrollment, offline/online transitions, configuration changes, and proxy operations.
 
-Уведомления создаются при подключении, отключении и восстановлении нод, изменениях конфигурации и операциях с прокси.
+### Web Push
 
-## PWA и Web Push
+ProxyFleet can be installed as a PWA. Under **Settings → Application & Push**, each browser or device can subscribe independently and choose notifications for nodes, proxies, and system events.
 
-ProxyFleet можно установить как отдельное приложение из поддерживаемого браузера. В разделе «Настройки → Приложение и push» доступны:
+Production Web Push requires HTTPS. `localhost` and `127.0.0.1` remain valid for local development. VAPID keys are generated automatically and stored in the private control-plane volume.
 
-- подключение или отключение уведомлений только для текущего устройства;
-- отдельные категории «Ноды», «Прокси» и «Система»;
-- тестовая отправка push-уведомления;
-- независимые подписки для нескольких браузеров и устройств.
+## ♻️ Updating
 
-Для Web Push production-панель должна открываться по HTTPS. Исключение браузеров для локальной разработки — `localhost` и `127.0.0.1`. VAPID-ключи генерируются автоматически при первом запуске и хранятся в том же закрытом Docker volume; `.env` не требуется.
+### Docker Hub installation
 
-## Обновление
+From the directory containing `docker-compose.yml`:
 
-При локальной сборке:
+```bash
+cd /opt/proxyfleet
+docker compose pull
+docker compose up -d --no-build --remove-orphans
+docker image prune -f
+```
+
+This recreates the container with the newest `neluckoff/proxyfleet:latest` image while preserving `proxyfleet-control-data`.
+
+For reproducible production deployments, set `PROXYFLEET_IMAGE` to a `sha-<commit>` tag listed on [Docker Hub Tags](https://hub.docker.com/r/neluckoff/proxyfleet/tags).
+
+### GitHub source installation
 
 ```bash
 cd /opt/proxyfleet
@@ -220,18 +238,11 @@ docker compose up -d --build
 docker image prune -f
 ```
 
-При использовании опубликованного образа:
+## 💾 Backup and restore
 
-```bash
-cd /opt/proxyfleet
-git pull --ff-only
-docker compose pull
-docker compose up -d --no-build
-```
+All control-plane data is stored in `proxyfleet-control-data`.
 
-## Резервное копирование
-
-Все данные control plane находятся в volume `proxyfleet-control-data`.
+Create a backup:
 
 ```bash
 docker run --rm \
@@ -240,7 +251,7 @@ docker run --rm \
   alpine tar -czf /backup/proxyfleet-backup.tar.gz -C /data .
 ```
 
-Восстановление выполняйте только при остановленном control plane:
+Restore only while the control plane is stopped:
 
 ```bash
 docker compose down
@@ -248,35 +259,34 @@ docker run --rm \
   -v proxyfleet-control-data:/data \
   -v "$PWD":/backup:ro \
   alpine sh -c 'rm -rf /data/* && tar -xzf /backup/proxyfleet-backup.tar.gz -C /data'
-docker compose up -d
+docker compose up -d --no-build
 ```
 
-## Конфигурация
+## ⚙️ Configuration
 
-| Переменная | Где используется | По умолчанию | Назначение |
+| Variable | Component | Default | Purpose |
 |---|---|---:|---|
-| `LISTEN_ADDR` | control plane | `:8080` | Адрес HTTP-сервера внутри контейнера |
-| `DATA_PATH` | control plane | `/data/state.json` | Файл состояния |
-| `NODE_IMAGE` | control plane | `neluckoff/proxyfleet:latest` | Образ в генерируемой команде ноды |
-| `PROXYFLEET_IMAGE` | Compose | `neluckoff/proxyfleet:latest` | Override образа панели и агента |
-| `CONTROL_URL` | agent | обязательно | Публичный URL control plane |
-| `ENROLL_TOKEN` | agent | первый запуск | Одноразовый токен подключения |
-| `AGENT_STATE_PATH` | agent | `/data/agent.json` | Постоянное состояние агента |
-| `HTTP_PROXY_PORT` | node Compose | `3128` | Публичный HTTP proxy-порт |
-| `SOCKS_PROXY_PORT` | node Compose | `1080` | Публичный SOCKS5-порт |
+| `LISTEN_ADDR` | control plane | `:8080` | HTTP listener inside the container |
+| `DATA_PATH` | control plane | `/data/state.json` | Persistent state file |
+| `NODE_IMAGE` | control plane | `neluckoff/proxyfleet:latest` | Image used in generated node commands |
+| `PROXYFLEET_IMAGE` | Compose | `neluckoff/proxyfleet:latest` | Control-plane and agent image override |
+| `CONTROL_URL` | agent | required | Public control-plane URL |
+| `ENROLL_TOKEN` | agent | first start | One-time enrollment token |
+| `AGENT_STATE_PATH` | agent | `/data/agent.json` | Persistent agent state |
+| `HTTP_PROXY_PORT` | node Compose | `3128` | Public HTTP proxy port |
+| `SOCKS_PROXY_PORT` | node Compose | `1080` | Public SOCKS5 proxy port |
 
-## Локальная разработка
+## 🧑‍💻 Local development
 
 ```bash
 git clone https://github.com/neluckoff/proxyfleet.git
 cd proxyfleet
 go mod download
-go run ./cmd/proxyfleet server
+DATA_PATH=./state.json LISTEN_ADDR=127.0.0.1:8080 \
+  go run ./cmd/proxyfleet server
 ```
 
-По умолчанию сервер доступен на `http://127.0.0.1:8080`.
-
-Проверки:
+Run the checks:
 
 ```bash
 go test ./...
@@ -285,65 +295,65 @@ node --check internal/control/web/app.js
 node --check internal/control/web/i18n.js
 ```
 
-## Структура проекта
+### Project layout
 
 ```text
-cmd/proxyfleet/             точка входа server/agent
-internal/agent/             proxy-движок, синхронизация и метрики ноды
-internal/control/           HTTP API, авторизация и файловое хранилище
-internal/control/web/       встроенный интерфейс панели
-internal/model/             общие структуры control plane и агента
-.github/workflows/          CI и публикация Docker-образа
+cmd/proxyfleet/             server and agent entry point
+internal/agent/             proxy engine, node sync, and metrics
+internal/control/           HTTP API, authentication, and file storage
+internal/control/web/       embedded web interface and PWA assets
+internal/model/             shared control-plane and agent models
+.github/workflows/          CI and Docker publishing
 docker-compose.yml          control plane
-docker-compose.node.yml     отдельная proxy-нода
+docker-compose.node.yml     standalone proxy node
 ```
 
-## HTTP API
+## 🔌 HTTP API
 
-Основные маршруты:
+Main route groups:
 
-- `/api/setup/*` — первоначальная настройка;
-- `/api/login`, `/api/logout`, `/api/me` — сессия владельца;
-- `/api/nodes` — управление нодами;
-- `/api/proxies` — управление собственными и внешними прокси;
-- `/api/pwa/*` — Web Push-подписки, категории и тестовая отправка;
-- `/api/analytics`, `/api/activity`, `/api/events` — наблюдаемость;
-- `/api/settings/*` — оформление, Telegram и смена пароля;
-- `/api/agent/*` — enrollment, конфигурация и heartbeat агента.
+- `/api/setup/*` — first-run setup;
+- `/api/login`, `/api/logout`, `/api/me` — owner session;
+- `/api/nodes` — node management;
+- `/api/proxies` — managed and external proxy management;
+- `/api/pwa/*` — Web Push subscriptions and preferences;
+- `/api/analytics`, `/api/activity`, `/api/events` — observability;
+- `/api/settings/*` — branding, Telegram, and password changes;
+- `/api/agent/*` — enrollment, configuration, and heartbeat.
 
-Все административные маршруты, кроме setup/login и публичного branding, требуют активной сессии.
+All administrative routes except setup, login, and public branding require an authenticated owner session.
 
-## Публикация Docker-образа
+## 🐳 Image publishing
 
-Workflow `.github/workflows/docker-publish.yml` публикует multi-arch образ `linux/amd64` и `linux/arm64` в Docker Hub.
+`.github/workflows/docker-publish.yml` publishes `linux/amd64` and `linux/arm64` images to Docker Hub.
 
-Добавьте в GitHub → Settings → Secrets and variables → Actions:
+Required GitHub Actions secrets:
 
-- `DOCKERHUB_USERNAME` — `neluckoff`;
-- `DOCKERHUB_TOKEN` — access token с правом Read & Write.
+- `DOCKERHUB_USERNAME` — Docker Hub username;
+- `DOCKERHUB_TOKEN` — access token with Read & Write permission.
 
-После этого создайте тег:
+Version tags publish semantic aliases:
 
 ```bash
 git tag v0.2.0
 git push origin v0.2.0
 ```
 
-Workflow опубликует `neluckoff/proxyfleet:0.2.0`, `:0.2`, `:0` и `:latest`. Его также можно запустить вручную через Actions.
+This produces `:0.2.0`, `:0.2`, `:0`, and `:latest`. Manual workflow runs publish `:latest` and `:sha-<commit>`.
 
-## Участие в разработке
+## 🤝 Contributing
 
-Перед изменениями прочитайте [CONTRIBUTING.md](.github/CONTRIBUTING.md). Ошибки и предложения оформляйте через GitHub Issues. Уязвимости не публикуйте открыто — порядок описан в [SECURITY.md](.github/SECURITY.md).
+Please read [CONTRIBUTING.md](.github/CONTRIBUTING.md) before opening a pull request. Use GitHub Issues for bugs and feature requests. Report security issues privately as described in [SECURITY.md](.github/SECURITY.md).
 
-## Roadmap
+## 🗺️ Roadmap
 
-- mTLS или WireGuard между control plane и нодами;
-- restart/update нод из панели;
-- автоматический failover и единая gateway-точка;
-- лимиты трафика и соединений;
-- дополнительные роли и 2FA;
-- PostgreSQL для нескольких экземпляров control plane.
+- mTLS or WireGuard between control plane and nodes;
+- node restart and update operations from the panel;
+- automatic failover and a unified gateway endpoint;
+- traffic and connection limits;
+- additional roles and 2FA;
+- PostgreSQL support for redundant control-plane deployments.
 
-## Лицензия
+## 📄 License
 
-Лицензия проекта пока не выбрана. До добавления файла `LICENSE` исходный код доступен для ознакомления, но формально не предоставляет стандартных open-source прав на использование и распространение.
+A license has not been selected yet. Until a `LICENSE` file is added, the source is available for inspection, but standard open-source usage and redistribution rights are not granted.
