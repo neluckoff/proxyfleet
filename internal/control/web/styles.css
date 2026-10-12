@@ -52,16 +52,9 @@ button { color: inherit; }
 .nav-icon svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
 .nav-item:first-of-type .nav-icon svg { fill: currentColor; stroke: none; }
 .nav-badge { display: grid; place-items: center; min-width: 22px; height: 20px; margin-left: auto; padding: 0 7px; border-radius: var(--radius-pill); background: rgba(255,255,255,.09); color: var(--color-glyph-silver); font-size: 9px; font-variant-numeric: tabular-nums; }
-.sidebar-bottom { display: flex; flex-direction: column; gap: 10px; margin-top: auto; }
-.control-status { display: flex; align-items: center; gap: 10px; min-height: 48px; padding: 0 14px; border: 1px solid rgba(255,255,255,.08); border-radius: 18px; color: rgba(255,255,255,.68); }
-.control-status b { display: block; font-size: 11px; font-weight: 500; line-height: 1.2; letter-spacing: -.22px; }
-.control-status small { display: block; margin-top: 3px; color: var(--color-divider-gray); font-size: 9px; letter-spacing: -.18px; }
-.pulse { display: inline-block; width: 6px; height: 6px; flex: 0 0 6px; border-radius: 50%; background: var(--color-glyph-silver); }
-.logout-button { display: flex; align-items: center; gap: 10px; width: 100%; min-height: 48px; padding: 5px 12px 5px 7px; border: 0; border-radius: 18px; background: transparent; cursor: pointer; text-align: left; }
-.logout-button:hover { background: rgba(255,255,255,.1); }
-.logout-button b { display: block; max-width: 148px; overflow: hidden; color: rgba(255,255,255,.82); font-size: 11px; font-weight: 500; text-overflow: ellipsis; white-space: nowrap; }
-.logout-button small { display: block; margin-top: 3px; color: var(--color-divider-gray); font-size: 9px; }
-#current-user-avatar { display: grid; place-items: center; width: 34px; height: 34px; flex: 0 0 34px; border-radius: 50%; background: var(--color-control-charcoal); color: var(--color-glyph-silver); font-size: 10px; font-weight: 600; }
+.sidebar-credit { margin: auto 10px 2px; color: var(--color-divider-gray); font-size: 10px; letter-spacing: .02em; }
+.sidebar-credit a { color: rgba(255,255,255,.72); text-decoration: none; }
+.sidebar-credit a:hover { color: var(--color-polar-white); text-decoration: underline; text-underline-offset: 3px; }
 
 .main { min-width: 0; margin-left: 248px; }
 .utility-dock { position: fixed; top: 18px; right: 28px; z-index: 26; display: flex; align-items: center; gap: 8px; min-height: 48px; padding: 5px; border: 1px solid rgba(255,255,255,.09); border-radius: var(--radius-pill); background: rgba(17,17,17,.78); box-shadow: 0 16px 48px rgba(0,0,0,.2); backdrop-filter: saturate(160%) blur(22px); }
@@ -436,13 +429,11 @@ legend { margin-bottom: 10px; color: var(--color-graphite); font-size: 12px; fon
 @media (max-width: 1050px) {
   .sidebar { width: 76px; padding: 22px 10px 16px; }
   .sidebar .brand { justify-content: center; padding: 0 0 28px; }
-  .sidebar .brand > span:last-child, .nav-section, .nav-item > :not(.nav-icon), .sidebar-bottom .control-status, .logout-button > span:last-child { display: none; }
+  .sidebar .brand > span:last-child, .nav-section, .nav-item > :not(.nav-icon), .sidebar-credit { display: none; }
   .sidebar nav { align-items: center; gap: 8px; }
   .nav-item { justify-content: center; gap: 0; width: 48px; height: 48px; padding: 0; border-radius: 16px; font-size: 0; }
   .nav-icon { width: 20px; height: 20px; flex-basis: 20px; }
   .nav-icon svg { width: 19px; height: 19px; }
-  .sidebar-bottom { align-items: center; }
-  .logout-button { justify-content: center; width: 48px; height: 48px; min-height: 48px; padding: 0; border-radius: 16px; }
   .main { margin-left: 76px; }
   .view { padding-right: 22px; padding-left: 22px; }
   .metric-grid { grid-template-columns: 1fr 1fr; }
@@ -460,7 +451,7 @@ legend { margin-bottom: 10px; color: var(--color-graphite); font-size: 12px; fon
 @media (max-width: 760px) {
   .app-shell { padding-bottom: calc(68px + env(safe-area-inset-bottom)); }
   .sidebar { inset: auto 0 0; flex-direction: row; align-items: flex-start; width: 100%; height: calc(68px + env(safe-area-inset-bottom)); padding: 8px 12px calc(8px + env(safe-area-inset-bottom)); border-top: 1px solid rgba(255,255,255,.1); border-right: 0; -webkit-backface-visibility: hidden; backface-visibility: hidden; transform: translate3d(0,0,0); will-change: transform; }
-  .sidebar .brand, .sidebar-bottom { display: none; }
+  .sidebar .brand, .sidebar-credit { display: none; }
   .sidebar nav { flex: 1; flex-direction: row; align-items: center; justify-content: space-around; gap: 4px; }
   .nav-item { width: 48px; height: 48px; flex: 0 0 48px; }
   .main { margin-left: 0; }

@@ -159,9 +159,6 @@ function showApp() {
   $('#setup-screen').classList.add('hidden')
   $('#login-screen').classList.add('hidden')
   $('#app').classList.remove('hidden')
-  const username = state.me?.username || 'Администратор'
-  $('#current-user').textContent = username
-  $('#current-user-avatar').textContent = username.slice(0, 1).toUpperCase()
   syncLanguageMenu()
   syncRoute()
 }
@@ -658,7 +655,6 @@ async function logout() {
   showLogin()
 }
 
-$('#logout').addEventListener('click', logout)
 $('#utility-logout').addEventListener('click', logout)
 $('#open-recap').addEventListener('click', () => {
   renderRecap()
