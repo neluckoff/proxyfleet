@@ -35,12 +35,12 @@ button { color: inherit; }
 
 .app-shell { min-height: 100vh; min-height: 100dvh; background: var(--color-carbon); }
 .sidebar { position: fixed; inset: 0 auto 0 0; z-index: 30; display: flex; flex-direction: column; width: 248px; height: 100vh; height: 100dvh; padding: 28px 16px 18px; background: rgba(17,17,17,.96); -webkit-backdrop-filter: saturate(180%) blur(20px); backdrop-filter: saturate(180%) blur(20px); border-right: 1px solid rgba(255,255,255,.08); }
-.brand { display: flex; align-items: center; gap: 11px; min-width: 0; padding: 0 10px 34px; }
-.brand-mark { display: grid; place-items: center; width: 34px; height: 34px; flex: 0 0 34px; border-radius: 10px; background: var(--color-polar-white); color: var(--color-graphite); font-size: 10px; font-weight: 600; letter-spacing: -.18px; }
+.brand { display: flex; align-items: center; gap: 15px; min-width: 0; padding: 0 10px 40px; }
+.brand-mark { display: grid; place-items: center; width: 48px; height: 48px; flex: 0 0 48px; border-radius: 14px; background: var(--color-polar-white); color: var(--color-graphite); font-size: 11px; font-weight: 600; letter-spacing: -.18px; }
 .brand-mark img { width: 100%; height: 100%; border-radius: inherit; object-fit: cover; }
 .brand-mark img[data-brand-default-logo] { padding: 6px; object-fit: contain; }
-.brand b { display: block; color: rgba(255,255,255,.9); font-size: 14px; font-weight: 600; line-height: 1.15; letter-spacing: -.12px; }
-.brand small { display: block; margin-top: 4px; color: var(--color-divider-gray); font-size: 8px; font-weight: 600; line-height: 1; letter-spacing: .08em; }
+.brand b { display: block; color: rgba(255,255,255,.9); font-size: 18px; font-weight: 600; line-height: 1.15; letter-spacing: -.22px; }
+.brand small { display: block; margin-top: 6px; color: var(--color-divider-gray); font-size: 10px; font-weight: 600; line-height: 1; letter-spacing: .1em; }
 .nav-section { display: block; margin: 0 14px 8px; color: var(--color-divider-gray); font-size: 9px; font-weight: 600; letter-spacing: .08em; }
 .nav-section:not(:first-child) { margin-top: 18px; }
 .sidebar nav { display: flex; flex-direction: column; gap: 5px; }
@@ -302,7 +302,7 @@ td code { padding: 6px 10px; border-radius: var(--radius-pill); background: var(
 .login-screen { min-height: 100vh; display: grid; grid-template-columns: minmax(420px, 54%) 1fr; gap: 24px; padding: 24px; background: var(--color-carbon); }
 .auth-aside { display: flex; flex-direction: column; min-height: calc(100vh - 48px); padding: 40px; border-radius: var(--radius-card); background: var(--color-absolute-black); }
 .auth-aside .brand { min-width: 0; padding: 0; }
-.auth-aside .brand-mark { width: 32px; height: 32px; }
+.auth-aside .brand-mark { width: 48px; height: 48px; }
 .auth-aside .brand small { display: block; }
 .auth-aside-copy { max-width: 680px; margin: auto 0; }
 .auth-label { color: var(--color-steel); font-size: 10px; font-weight: 600; letter-spacing: -.37px; }
