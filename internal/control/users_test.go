@@ -149,3 +149,14 @@ func TestDisabledProxyKeepsItsEndpointDetails(t *testing.T) {
 		t.Fatalf("disabled proxy lost endpoint details: %#v", public)
 	}
 }
+
+func TestLegacyProxyDefaultsToHTTP(t *testing.T) {
+	state := model.State{
+		Nodes: []*model.Node{{ID: "node-1", AdvertisedHost: "proxy.example.test", HTTPPort: 3128, SOCKSPort: 1080}},
+	}
+	proxy := &model.ProxyUser{ID: "proxy-1", Protocol: "both", NodeIDs: []string{"node-1"}, Enabled: true}
+	public := publicProxy(&state, proxy)
+	if public["protocol"] != "http" || public["endpoint"] != "proxy.example.test:3128" {
+		t.Fatalf("legacy proxy must resolve to one HTTP endpoint: %#v", public)
+	}
+}

@@ -71,11 +71,10 @@ button { color: inherit; }
 .utility-icon-button { width: 38px; flex: 0 0 38px; padding: 0; cursor: pointer; }
 .utility-icon-button svg { width: 19px; height: 19px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
 .recap-trigger { border-color: rgba(191,90,242,.28); color: #bf5af2; }
-.recap-trigger svg { fill: currentColor; stroke: none; }
+.recap-trigger svg { width: 22px; height: 22px; fill: currentColor; stroke: none; }
 .utility-logout { border-color: rgba(100,210,255,.28); color: #64d2ff; }
 .language-control { position: relative; }
-.language-symbol { position: relative; display: block; font-size: 16px; font-weight: 500; line-height: 1; }
-.language-symbol small { position: absolute; right: -6px; bottom: -5px; font-size: 8px; font-weight: 700; }
+.language-toggle svg { width: 22px; height: 22px; stroke-width: 2.1; }
 .language-menu { position: absolute; top: calc(100% + 12px); right: 0; width: 190px; padding: 8px; border: 1px solid rgba(255,255,255,.14); border-radius: 18px; background: #202024; box-shadow: 0 22px 60px rgba(0,0,0,.42); }
 .language-menu button { display: grid; grid-template-columns: 24px 1fr 8px; align-items: center; gap: 10px; width: 100%; min-height: 44px; padding: 0 12px; border: 0; border-radius: 12px; background: transparent; color: var(--color-glyph-silver); cursor: pointer; text-align: left; }
 .language-menu button:hover { background: rgba(255,255,255,.07); color: var(--color-polar-white); }
@@ -88,11 +87,14 @@ button { color: inherit; }
 .button.secondary { border: 1px solid rgba(255,255,255,.22); background: transparent; color: var(--color-polar-white); }
 .button.secondary:hover { background: rgba(255,255,255,.08); }
 .button.wide { width: 100%; justify-content: space-between; min-height: 46px; padding: 0 18px; }
+.button-plus { position: relative; width: 18px; height: 18px; flex: 0 0 18px; }
+.button-plus::before, .button-plus::after { content: ""; position: absolute; top: 50%; left: 50%; width: 16px; height: 2px; border-radius: 999px; background: currentColor; transform: translate(-50%, -50%); }
+.button-plus::after { transform: translate(-50%, -50%) rotate(90deg); }
 
 .view { display: none; width: 100%; max-width: 1500px; margin: 0 auto; padding: 96px 28px 96px; }
 .view.active { display: block; }
 .page-intro { display: flex; align-items: flex-end; justify-content: space-between; gap: 32px; margin: 0 0 32px; }
-.page-intro .button { min-height: 48px; flex: 0 0 auto; padding: 0 24px; font-size: 14px; font-weight: 600; line-height: 20px; white-space: nowrap; }
+.page-intro .button { min-height: 48px; flex: 0 0 auto; gap: 9px; padding: 0 24px; font-size: 14px; font-weight: 600; line-height: 20px; white-space: nowrap; }
 .page-intro h1 { margin: 0 0 12px; color: var(--color-polar-white); font-family: var(--font-display); font-size: 48px; font-weight: 600; line-height: 1; letter-spacing: -.144px; }
 .page-intro p { margin: 0; color: var(--color-steel); font-size: 17px; line-height: 1.47; letter-spacing: -.374px; }
 .page-kicker { margin: 0 0 16px !important; color: var(--color-glyph-silver) !important; font-size: 10px !important; font-weight: 600; line-height: 1.24 !important; letter-spacing: -.37px !important; }
@@ -236,7 +238,6 @@ td code { padding: 6px 10px; border-radius: var(--radius-pill); background: var(
 .proxy-node-cell small { display: block; margin-top: 5px; color: var(--color-steel); font-size: 9px; }
 .protocol-chip { display: inline-flex; align-items: center; min-height: 28px; padding: 0 10px; border-radius: var(--radius-pill); background: rgba(41,151,255,.12); color: #64d2ff; font-size: 9px; font-weight: 700; letter-spacing: .04em; white-space: nowrap; }
 .protocol-chip.socks5 { background: rgba(191,90,242,.13); color: #d08cff; }
-.protocol-chip.both { background: rgba(255,159,10,.13); color: #ffb340; }
 .status-pill.disabled { background: rgba(66,66,69,.72); color: var(--color-glyph-silver); }
 .status-pill.unassigned, .status-pill.unchecked { background: rgba(255,159,10,.13); color: var(--color-launch-orange); }
 .status-pill.unavailable { background: rgba(255,69,58,.14); color: var(--color-error-red); }

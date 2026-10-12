@@ -413,7 +413,7 @@ func publicProxy(state *model.State, user *model.ProxyUser) map[string]any {
 	}
 	protocol := user.Protocol
 	if protocol != "http" && protocol != "socks5" {
-		protocol = "both"
+		protocol = "http"
 	}
 	source := proxySource(user)
 	node := findNode(state, firstNodeID(user))

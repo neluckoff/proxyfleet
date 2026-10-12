@@ -44,9 +44,10 @@ func openStore(path string) (*store, error) {
 		if user.Source == "" {
 			user.Source = "managed"
 		}
-		if user.Protocol != "http" && user.Protocol != "socks5" && user.Protocol != "both" {
-			// Credentials created before protocol selection existed worked on both listeners.
-			user.Protocol = "both"
+		if user.Protocol != "http" && user.Protocol != "socks5" {
+			// Legacy credentials predate the one-proxy/one-protocol model. Keep them
+			// usable through the HTTP listener instead of exposing two endpoints.
+			user.Protocol = "http"
 		}
 	}
 	if s.state.PushSubscriptions == nil {

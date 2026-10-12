@@ -76,10 +76,10 @@
         <span class="github-star" aria-hidden="true">☆</span><b id="github-stars">GitHub</b>
       </a>
       <button id="open-recap" class="utility-icon-button recap-trigger" type="button" aria-label="Создать карточку платформы" title="Карточка платформы">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 .72 2.28A5 5 0 0 0 16 8.56l2.28.72-2.28.72a5 5 0 0 0-3.28 3.28L12 15.56l-.72-2.28A5 5 0 0 0 8 10l-2.28-.72L8 8.56a5 5 0 0 0 3.28-3.28L12 3ZM18.5 14l.36 1.14A2.5 2.5 0 0 0 20.5 16.8l1.14.36-1.14.36a2.5 2.5 0 0 0-1.64 1.64L18.5 20.3l-.36-1.14a2.5 2.5 0 0 0-1.64-1.64l-1.14-.36 1.14-.36a2.5 2.5 0 0 0 1.64-1.64L18.5 14Z"/></svg>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10.7 2.9c.2-.7 1.2-.7 1.4 0l.6 2.2a7 7 0 0 0 4.9 4.9l2.2.6c.7.2.7 1.2 0 1.4l-2.2.6a7 7 0 0 0-4.9 4.9l-.6 2.2c-.2.7-1.2.7-1.4 0l-.6-2.2a7 7 0 0 0-4.9-4.9L3 12c-.7-.2-.7-1.2 0-1.4l2.2-.6a7 7 0 0 0 4.9-4.9l.6-2.2Z"/><path d="M19.1 2.1c.1-.4.7-.4.8 0l.2.8a2.6 2.6 0 0 0 1.8 1.8l.8.2c.4.1.4.7 0 .8l-.8.2a2.6 2.6 0 0 0-1.8 1.8l-.2.8c-.1.4-.7.4-.8 0l-.2-.8a2.6 2.6 0 0 0-1.8-1.8l-.8-.2c-.4-.1-.4-.7 0-.8l.8-.2a2.6 2.6 0 0 0 1.8-1.8l.2-.8Z"/></svg>
       </button>
       <div class="language-control">
-        <button id="language-toggle" class="utility-icon-button" type="button" aria-label="Изменить язык" aria-expanded="false" title="Язык интерфейса"><span class="language-symbol">文<small>A</small></span></button>
+        <button id="language-toggle" class="utility-icon-button language-toggle" type="button" aria-label="Изменить язык" aria-expanded="false" title="Язык интерфейса"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h10M9 2v3M6 8c1.2 3 3.2 5.2 6 6.5M12 5c-.8 4.6-3.5 8.2-8 10.5M13 21l4-10 4 10M14.5 17h5"/></svg></button>
         <div id="language-menu" class="language-menu hidden" role="menu">
           <button type="button" data-locale="ru" role="menuitem"><span>🇷🇺</span><b>Русский</b><i></i></button>
           <button type="button" data-locale="en" role="menuitem"><span>🇬🇧</span><b>English</b><i></i></button>
@@ -108,7 +108,7 @@
       <section id="view-dashboard" class="view active">
         <div class="page-intro dashboard-intro">
           <div><h1>Вся сеть.<br>Под вашим контролем.</h1><p>Ноды, соединения и доступы — в одном точном представлении.</p></div>
-          <div class="page-intro-actions"><span class="last-update">Обновляется автоматически</span><button class="button primary" data-action="new-node">+ Добавить ноду</button></div>
+          <div class="page-intro-actions"><span class="last-update">Обновляется автоматически</span><button class="button primary" data-action="new-node"><span class="button-plus" aria-hidden="true"></span><span>Добавить ноду</span></button></div>
         </div>
 
         <div class="network-summary">
@@ -193,12 +193,12 @@
       </section>
 
       <section id="view-nodes" class="view">
-        <div class="page-intro"><div><h1>Proxy-ноды</h1><p>Серверы, которые принимают HTTP и SOCKS5 трафик.</p></div><button class="button primary" data-action="new-node">+ Новая нода</button></div>
+        <div class="page-intro"><div><h1>Proxy-ноды</h1><p>Серверы, которые принимают HTTP и SOCKS5 трафик.</p></div><button class="button primary" data-action="new-node"><span class="button-plus" aria-hidden="true"></span><span>Новая нода</span></button></div>
         <div id="nodes-grid" class="nodes-grid"></div>
       </section>
 
       <section id="view-proxies" class="view">
-        <div class="page-intro"><div><h1>Прокси</h1><p>Готовые HTTP и SOCKS5 подключения с отдельными доступами и управлением.</p></div><button class="button primary" data-action="new-proxy">+ Создать прокси</button></div>
+        <div class="page-intro"><div><h1>Прокси</h1><p>Готовые HTTP и SOCKS5 подключения с отдельными доступами и управлением.</p></div><button class="button primary" data-action="new-proxy"><span class="button-plus" aria-hidden="true"></span><span>Создать прокси</span></button></div>
         <article class="panel table-panel proxy-table-panel">
           <div class="table-scroll"><table class="proxy-table"><thead><tr><th>Прокси</th><th>Протокол</th><th>Адрес</th><th>Логин</th><th>Источник</th><th>Состояние</th><th>Создан</th><th></th></tr></thead><tbody id="proxies-table"></tbody></table></div>
         </article>
