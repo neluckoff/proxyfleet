@@ -53,7 +53,7 @@ func (s *server) setup(w http.ResponseWriter, r *http.Request) {
 	}
 	settings := &model.Settings{
 		AdminUsername: input.Username, AdminPasswordHash: string(passwordHash),
-		SessionSecret: randomToken(32), PublicURL: input.PublicURL, CreatedAt: time.Now().UTC(),
+		SessionSecret: randomToken(32), PublicURL: input.PublicURL, SystemName: "ProxyFleet", CreatedAt: time.Now().UTC(),
 	}
 	err = s.store.update(func(state *model.State) error {
 		if state.Settings != nil {

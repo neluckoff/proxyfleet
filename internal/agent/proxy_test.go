@@ -8,11 +8,13 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	"github.com/neluckoff/proxyfleet/internal/model"
 )
 
 func TestProxyAuthorization(t *testing.T) {
 	p := newProxyRuntime(slog.New(slog.NewTextHandler(io.Discard, nil)))
-	p.users.Store(map[string]string{"minedecor": credentialHash("minedecor", "a-secure-test-password")})
+	p.httpUsers.Store(map[string]string{"minedecor": credentialHash("minedecor", "a-secure-test-password")})
 
 	request := httptest.NewRequest(http.MethodConnect, "https://api.telegram.org", nil)
 	response := httptest.NewRecorder()
@@ -27,6 +29,37 @@ func TestProxyAuthorization(t *testing.T) {
 	p.handleHTTP(response, request)
 	if response.Code != http.StatusProxyAuthRequired {
 		t.Fatalf("wrong password returned %d", response.Code)
+	}
+}
+
+func TestCredentialsAreScopedToProtocol(t *testing.T) {
+	hash := credentialHash("customer", "a-secure-test-password")
+	httpUsers, socksUsers := splitCredentials([]model.AgentUser{
+		{Username: "http-only", PasswordHash: hash, Protocol: "http", Enabled: true},
+		{Username: "socks-only", PasswordHash: hash, Protocol: "socks5", Enabled: true},
+		{Username: "legacy", PasswordHash: hash, Protocol: "both", Enabled: true},
+		{Username: "disabled", PasswordHash: hash, Protocol: "http", Enabled: false},
+	})
+	if _, ok := httpUsers["http-only"]; !ok {
+		t.Fatal("HTTP credential is missing from HTTP listener")
+	}
+	if _, ok := socksUsers["http-only"]; ok {
+		t.Fatal("HTTP credential leaked to SOCKS5 listener")
+	}
+	if _, ok := socksUsers["socks-only"]; !ok {
+		t.Fatal("SOCKS5 credential is missing from SOCKS5 listener")
+	}
+	if _, ok := httpUsers["socks-only"]; ok {
+		t.Fatal("SOCKS5 credential leaked to HTTP listener")
+	}
+	if _, ok := httpUsers["legacy"]; !ok {
+		t.Fatal("legacy credential must remain available on HTTP")
+	}
+	if _, ok := socksUsers["legacy"]; !ok {
+		t.Fatal("legacy credential must remain available on SOCKS5")
+	}
+	if _, ok := httpUsers["disabled"]; ok {
+		t.Fatal("disabled credential must not be installed")
 	}
 }
 

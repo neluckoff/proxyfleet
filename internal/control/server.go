@@ -32,14 +32,16 @@ func Run(ctx context.Context, log *slog.Logger) error {
 
 	s := &server{
 		store:     st,
-		nodeImage: env("NODE_IMAGE", "ghcr.io/neluckoff/proxyfleet:latest"),
+		nodeImage: env("NODE_IMAGE", "neluckoff/proxyfleet:latest"),
 	}
+	go s.monitorOfflineNodes(ctx)
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /health", func(w http.ResponseWriter, _ *http.Request) {
 		writeJSON(w, http.StatusOK, map[string]any{"ok": true, "version": version})
 	})
 	mux.HandleFunc("GET /api/setup/status", s.setupStatus)
+	mux.HandleFunc("GET /api/branding", s.branding)
 	mux.HandleFunc("POST /api/setup", s.setup)
 	mux.HandleFunc("POST /api/login", s.login)
 	mux.HandleFunc("POST /api/logout", s.logout)
@@ -99,7 +101,10 @@ func (s *server) adminMux() http.Handler {
 		}
 		writeJSON(w, http.StatusOK, map[string]any{"username": settings.AdminUsername, "version": version})
 	})
+	mux.HandleFunc("GET /api/platform", s.platformInfo)
 	mux.HandleFunc("GET /api/overview", s.overview)
+	mux.HandleFunc("GET /api/analytics", s.analytics)
+	mux.HandleFunc("GET /api/activity", s.activity)
 	mux.HandleFunc("GET /api/nodes", s.listNodes)
 	mux.HandleFunc("POST /api/nodes", s.createNode)
 	mux.HandleFunc("PATCH /api/nodes/{id}", s.updateNode)
@@ -109,7 +114,16 @@ func (s *server) adminMux() http.Handler {
 	mux.HandleFunc("POST /api/users", s.createUser)
 	mux.HandleFunc("PATCH /api/users/{id}", s.updateUser)
 	mux.HandleFunc("DELETE /api/users/{id}", s.deleteUser)
+	mux.HandleFunc("GET /api/proxies", s.listUsers)
+	mux.HandleFunc("POST /api/proxies", s.createUser)
+	mux.HandleFunc("PATCH /api/proxies/{id}", s.updateUser)
+	mux.HandleFunc("DELETE /api/proxies/{id}", s.deleteUser)
 	mux.HandleFunc("GET /api/events", s.listEvents)
+	mux.HandleFunc("GET /api/settings", s.getSettings)
+	mux.HandleFunc("PATCH /api/settings/branding", s.updateBranding)
+	mux.HandleFunc("PATCH /api/settings/telegram", s.updateTelegramSettings)
+	mux.HandleFunc("POST /api/settings/telegram/test", s.testTelegramSettings)
+	mux.HandleFunc("POST /api/settings/password", s.changePassword)
 	return mux
 }
 
@@ -117,7 +131,7 @@ func (s *server) overview(w http.ResponseWriter, _ *http.Request) {
 	state := s.store.snapshot()
 	now := time.Now()
 	online, healthy := 0, 0
-	var up, down, active int64
+	var active int64
 	for _, node := range state.Nodes {
 		if nodeOnline(node, now) {
 			online++
@@ -125,13 +139,11 @@ func (s *server) overview(w http.ResponseWriter, _ *http.Request) {
 				healthy++
 			}
 		}
-		up += node.BytesUp
-		down += node.BytesDown
 		active += node.ActiveConnections
 	}
 	writeJSON(w, http.StatusOK, map[string]any{
 		"nodes": len(state.Nodes), "online": online, "healthy": healthy,
-		"users": len(state.Users), "bytesUp": up, "bytesDown": down, "activeConnections": active,
+		"users": len(state.Users), "proxies": len(state.Users), "bytesUp": state.TrafficBytesUp, "bytesDown": state.TrafficBytesDown, "activeConnections": active,
 	})
 }
 

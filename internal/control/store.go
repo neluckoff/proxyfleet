@@ -17,7 +17,7 @@ type store struct {
 }
 
 func openStore(path string) (*store, error) {
-	s := &store{path: path, state: model.State{Nodes: []*model.Node{}, Users: []*model.ProxyUser{}, Events: []*model.Event{}}}
+	s := &store{path: path, state: model.State{Nodes: []*model.Node{}, Users: []*model.ProxyUser{}, Events: []*model.Event{}, Activity: []*model.ActivitySample{}, Traffic: []*model.TrafficSample{}}}
 	if err := os.MkdirAll(filepath.Dir(path), 0o700); err != nil {
 		return nil, err
 	}
@@ -32,6 +32,33 @@ func openStore(path string) (*store, error) {
 	if len(data) > 0 {
 		if err := json.Unmarshal(data, &s.state); err != nil {
 			return nil, err
+		}
+	}
+	if s.state.Nodes == nil {
+		s.state.Nodes = []*model.Node{}
+	}
+	if s.state.Users == nil {
+		s.state.Users = []*model.ProxyUser{}
+	}
+	for _, user := range s.state.Users {
+		if user.Protocol != "http" && user.Protocol != "socks5" && user.Protocol != "both" {
+			// Credentials created before protocol selection existed worked on both listeners.
+			user.Protocol = "both"
+		}
+	}
+	if s.state.Events == nil {
+		s.state.Events = []*model.Event{}
+	}
+	if s.state.Activity == nil {
+		s.state.Activity = []*model.ActivitySample{}
+	}
+	if s.state.Traffic == nil {
+		s.state.Traffic = []*model.TrafficSample{}
+	}
+	if s.state.TrafficBytesUp == 0 && s.state.TrafficBytesDown == 0 {
+		for _, node := range s.state.Nodes {
+			s.state.TrafficBytesUp += node.BytesUp
+			s.state.TrafficBytesDown += node.BytesDown
 		}
 	}
 	return s, nil

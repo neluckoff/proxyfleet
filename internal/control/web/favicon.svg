@@ -1,1 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="18" fill="#a7f06a"/><path d="M18 18h17c9 0 14 4 14 12s-5 13-14 13h-7v9H18V18zm10 8v9h6c3 0 5-1 5-5 0-3-2-4-5-4h-6z" fill="#0b1511"/></svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="ProxyFleet">
+  <rect width="64" height="64" rx="18" fill="#111113"/>
+  <path d="M24 50V14h13c9 0 15 5.4 15 13.5S46 41 37 41H24" fill="none" stroke="#F5F5F7" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M11 14h13M11 32h13M11 50h13" fill="none" stroke="#2997FF" stroke-width="6" stroke-linecap="round"/>
+  <circle cx="37" cy="27.5" r="3.5" fill="#64D2FF"/>
+</svg>

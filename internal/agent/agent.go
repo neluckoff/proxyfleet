@@ -141,10 +141,13 @@ func (r *runner) sync(ctx context.Context) error {
 
 func (r *runner) heartbeat(ctx context.Context) error {
 	stats := r.proxy.Stats()
+	system := readSystemStats()
 	beat := model.Heartbeat{
 		AgentVersion: agentVersion, PublicIP: r.publicIP, TelegramOK: r.tgOK, TelegramLatencyMS: r.tgLatency,
 		LastError: r.lastError, UptimeSeconds: int64(time.Since(r.startedAt).Seconds()),
 		ActiveConnections: stats.Active, BytesUp: stats.Up, BytesDown: stats.Down,
+		MemoryAllocBytes: system.MemoryAllocBytes, MemorySysBytes: system.MemorySysBytes, Goroutines: system.Goroutines,
+		HostMemoryUsedBytes: system.HostMemoryUsedBytes, HostMemoryTotalBytes: system.HostMemoryTotalBytes, LoadOne: system.LoadOne,
 	}
 	return r.request(ctx, http.MethodPost, "/api/agent/heartbeat", beat, nil, true)
 }

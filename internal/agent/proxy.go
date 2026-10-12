@@ -32,7 +32,8 @@ type proxyStats struct {
 type proxyRuntime struct {
 	log        *slog.Logger
 	mu         sync.Mutex
-	users      atomic.Value
+	httpUsers  atomic.Value
+	socksUsers atomic.Value
 	allowLocal atomic.Bool
 	httpServer *http.Server
 	httpLn     net.Listener
@@ -48,7 +49,8 @@ type proxyRuntime struct {
 
 func newProxyRuntime(log *slog.Logger) *proxyRuntime {
 	p := &proxyRuntime{log: log}
-	p.users.Store(map[string]string{})
+	p.httpUsers.Store(map[string]string{})
+	p.socksUsers.Store(map[string]string{})
 	return p
 }
 
@@ -62,13 +64,9 @@ func (p *proxyRuntime) Apply(parent context.Context, config model.AgentConfig) e
 	p.mu.Lock()
 	defer p.mu.Unlock()
 
-	users := make(map[string]string, len(config.Users))
-	for _, user := range config.Users {
-		if user.Enabled {
-			users[user.Username] = user.PasswordHash
-		}
-	}
-	p.users.Store(users)
+	httpUsers, socksUsers := splitCredentials(config.Users)
+	p.httpUsers.Store(httpUsers)
+	p.socksUsers.Store(socksUsers)
 	p.allowLocal.Store(config.AllowPrivateTargets)
 
 	if p.running.Load() && p.httpPort == config.HTTPPort && p.socksPort == config.SOCKSPort {
@@ -132,8 +130,28 @@ func (p *proxyRuntime) closeLocked() {
 	p.socksLn = nil
 }
 
-func (p *proxyRuntime) authenticate(username, password string) bool {
-	expected, ok := p.users.Load().(map[string]string)[username]
+func splitCredentials(users []model.AgentUser) (map[string]string, map[string]string) {
+	httpUsers := make(map[string]string, len(users))
+	socksUsers := make(map[string]string, len(users))
+	for _, user := range users {
+		if !user.Enabled {
+			continue
+		}
+		switch user.Protocol {
+		case "http":
+			httpUsers[user.Username] = user.PasswordHash
+		case "socks5":
+			socksUsers[user.Username] = user.PasswordHash
+		default: // Backwards compatibility for credentials created before protocol selection.
+			httpUsers[user.Username] = user.PasswordHash
+			socksUsers[user.Username] = user.PasswordHash
+		}
+	}
+	return httpUsers, socksUsers
+}
+
+func authenticate(users atomic.Value, username, password string) bool {
+	expected, ok := users.Load().(map[string]string)[username]
 	if !ok {
 		return false
 	}
@@ -143,7 +161,7 @@ func (p *proxyRuntime) authenticate(username, password string) bool {
 
 func (p *proxyRuntime) handleHTTP(w http.ResponseWriter, r *http.Request) {
 	username, password, ok := parseProxyAuthorization(r.Header.Get("Proxy-Authorization"))
-	if !ok || !p.authenticate(username, password) {
+	if !ok || !authenticate(p.httpUsers, username, password) {
 		w.Header().Set("Proxy-Authenticate", `Basic realm="ProxyFleet"`)
 		http.Error(w, "Proxy authentication required", http.StatusProxyAuthRequired)
 		return
@@ -358,7 +376,7 @@ func (p *proxyRuntime) socksAuthenticate(reader *bufio.Reader, client net.Conn) 
 	if _, err := io.ReadFull(reader, passwordBytes); err != nil {
 		return false
 	}
-	ok := p.authenticate(string(usernameBytes), string(passwordBytes))
+	ok := authenticate(p.socksUsers, string(usernameBytes), string(passwordBytes))
 	status := byte(1)
 	if ok {
 		status = 0

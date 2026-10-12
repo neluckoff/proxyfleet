@@ -1,6 +1,4 @@
-.login-card.setup-card {
-  width: min(560px, 100%);
-}
+.login-card.setup-card { width: min(540px, calc(100% - 32px)); }
 
 .password-grid {
   display: grid;
@@ -8,35 +6,26 @@
   gap: 12px;
 }
 
-.field-hint {
-  color: #66726a;
-  font-size: 9px;
-  font-weight: 500;
-}
+.field-hint { color: var(--color-steel); font-size: 10px; font-weight: 400; }
 
 .security-note {
   display: flex;
   align-items: center;
   gap: 8px;
   margin: 0;
-  padding: 10px 12px;
-  border: 1px solid #233029;
-  border-radius: 10px;
-  background: #0b110d;
-  color: #809087;
+  padding: 10px 11px;
+  border: 0;
+  border-radius: 18px;
+  background: var(--color-polar-white);
+  color: var(--color-divider-gray);
   font-size: 10px;
+  line-height: 1.4;
 }
 
-.security-note span {
-  color: var(--lime);
-}
-
-.security-note code {
-  color: #aebbb2;
-}
+.security-note span { color: var(--color-purchase-blue); font-weight: 800; }
+.security-note code { color: var(--color-graphite); }
 
 @media (max-width: 760px) {
-  .password-grid {
-    grid-template-columns: 1fr;
-  }
+  .login-card.setup-card { width: min(500px, calc(100% - 40px)); }
+  .password-grid { grid-template-columns: 1fr; }
 }

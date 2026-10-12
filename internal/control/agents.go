@@ -19,10 +19,12 @@ func (s *server) agentEnroll(w http.ResponseWriter, r *http.Request) {
 	}
 	agentToken := randomToken(32)
 	var nodeID string
+	var nodeName string
 	err := s.store.update(func(state *model.State) error {
 		for _, node := range state.Nodes {
 			if node.EnrollTokenHash != "" && secureEqual(node.EnrollTokenHash, tokenHash(input.Token)) {
 				nodeID = node.ID
+				nodeName = node.Name
 				node.AgentTokenHash = tokenHash(agentToken)
 				node.EnrollTokenHash = ""
 				node.LastSeenAt = time.Now().UTC()
@@ -36,6 +38,7 @@ func (s *server) agentEnroll(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusUnauthorized, "Ключ подключения недействителен или уже использован")
 		return
 	}
+	s.notify("Нода подключена: " + nodeName)
 	writeJSON(w, http.StatusOK, map[string]any{"nodeId": nodeID, "agentToken": agentToken})
 }
 
@@ -44,7 +47,7 @@ func (s *server) agentConfig(w http.ResponseWriter, _ *http.Request, node *model
 	users := make([]model.AgentUser, 0)
 	for _, user := range state.Users {
 		if slices.Contains(user.NodeIDs, node.ID) {
-			users = append(users, model.AgentUser{ID: user.ID, Username: user.Username, PasswordHash: user.PasswordHash, Enabled: user.Enabled})
+			users = append(users, model.AgentUser{ID: user.ID, Username: user.Username, PasswordHash: user.PasswordHash, Protocol: user.Protocol, Enabled: user.Enabled})
 		}
 	}
 	writeJSON(w, http.StatusOK, model.AgentConfig{Version: node.ConfigVersion, NodeName: node.Name, HTTPPort: node.HTTPPort, SOCKSPort: node.SOCKSPort, AllowPrivateTargets: node.AllowPrivateTargets, Users: users})
@@ -55,6 +58,7 @@ func (s *server) agentHeartbeat(w http.ResponseWriter, r *http.Request, authenti
 	if !decodeJSON(w, r, &beat) {
 		return
 	}
+	var notifications []string
 	err := s.store.update(func(state *model.State) error {
 		node := findNode(state, authenticated.ID)
 		if node == nil {
@@ -62,6 +66,8 @@ func (s *server) agentHeartbeat(w http.ResponseWriter, r *http.Request, authenti
 		}
 		wasOffline := !nodeOnline(node, time.Now())
 		telegramChanged := node.LastSeenAt.IsZero() || node.TelegramOK != beat.TelegramOK
+		trafficUp := counterDelta(node.BytesUp, beat.BytesUp)
+		trafficDown := counterDelta(node.BytesDown, beat.BytesDown)
 		node.LastSeenAt = time.Now().UTC()
 		node.AgentVersion = beat.AgentVersion
 		node.PublicIP = beat.PublicIP
@@ -72,8 +78,18 @@ func (s *server) agentHeartbeat(w http.ResponseWriter, r *http.Request, authenti
 		node.ActiveConnections = beat.ActiveConnections
 		node.BytesUp = beat.BytesUp
 		node.BytesDown = beat.BytesDown
+		node.MemoryAllocBytes = beat.MemoryAllocBytes
+		node.MemorySysBytes = beat.MemorySysBytes
+		node.Goroutines = beat.Goroutines
+		node.HostMemoryUsedBytes = beat.HostMemoryUsedBytes
+		node.HostMemoryTotalBytes = beat.HostMemoryTotalBytes
+		node.LoadOne = beat.LoadOne
+		node.OfflineNotified = false
+		recordTraffic(state, time.Now().UTC(), trafficUp, trafficDown)
+		recordActivitySample(state, time.Now().UTC())
 		if wasOffline {
 			state.Events = append(state.Events, newEvent("node.online", "Нода вышла на связь", node.ID, nil))
+			notifications = append(notifications, "Нода вышла на связь: "+node.Name)
 		}
 		if telegramChanged {
 			message := "Telegram на ноде недоступен"
@@ -81,12 +97,16 @@ func (s *server) agentHeartbeat(w http.ResponseWriter, r *http.Request, authenti
 				message = "Проверка Telegram восстановлена"
 			}
 			state.Events = append(state.Events, newEvent("node.telegram", message, node.ID, map[string]any{"ok": beat.TelegramOK, "latencyMs": beat.TelegramLatencyMS}))
+			notifications = append(notifications, message+": "+node.Name)
 		}
 		return nil
 	})
 	if err != nil {
 		writeError(w, http.StatusNotFound, "Нода не найдена")
 		return
+	}
+	for _, message := range notifications {
+		s.notify(message)
 	}
 	writeJSON(w, http.StatusOK, map[string]any{"ok": true})
 }

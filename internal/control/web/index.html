@@ -2,10 +2,10 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <meta name="description" content="ProxyFleet — центральное управление приватными proxy-нодами">
   <title>ProxyFleet</title>
-  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link id="app-favicon" rel="icon" href="/favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="/styles.css">
   <link rel="stylesheet" href="/setup.css">
 </head>
@@ -13,13 +13,20 @@
   <div id="toast" class="toast" aria-live="polite"></div>
 
   <section id="setup-screen" class="login-screen hidden">
-    <div class="login-glow"></div>
+    <div class="auth-aside">
+      <div class="brand brand-large"><span class="brand-mark" data-brand-mark><span class="hidden" data-brand-initials>PF</span><img data-brand-default-logo src="/logo.svg" alt=""><img class="hidden" data-brand-logo alt=""></span><span><b data-system-name>ProxyFleet</b><small>CONTROL PLANE</small></span></div>
+      <div class="auth-aside-copy">
+        <span class="auth-label">ПЕРВЫЙ ЗАПУСК</span>
+        <h2>Один центр управления всей proxy-инфраструктурой.</h2>
+        <p>Подключайте серверы, управляйте доступами и следите за состоянием Telegram из одной панели.</p>
+      </div>
+      <p class="auth-footnote">Self-hosted · Данные остаются на вашем сервере</p>
+    </div>
     <form id="setup-form" class="login-card setup-card">
-      <div class="brand brand-large"><span class="brand-mark">PF</span><span><b>ProxyFleet</b><small>ПЕРВЫЙ ЗАПУСК</small></span></div>
       <div>
-        <p class="eyebrow lime">НАСТРОЙКА ВЛАДЕЛЬЦА</p>
-        <h1>Создайте доступ к панели</h1>
-        <p class="muted">Это делается один раз. Пароль будет сохранён только как защищённый bcrypt-хеш, а ключ сессий панель создаст сама.</p>
+        <p class="eyebrow">НАСТРОЙКА ВЛАДЕЛЬЦА</p>
+        <h1>Создайте аккаунт</h1>
+        <p class="muted">Настройка выполняется один раз. Пароль сохранится только в виде bcrypt-хеша.</p>
       </div>
       <label>Имя владельца<input name="username" autocomplete="username" value="admin" minlength="3" maxlength="64" pattern="[A-Za-z0-9._-]+" required></label>
       <label>Адрес панели<input name="publicUrl" type="url" autocomplete="url" placeholder="https://proxy.example.com" required><span class="field-hint">Он попадёт в команды подключения новых нод.</span></label>
@@ -34,13 +41,20 @@
   </section>
 
   <section id="login-screen" class="login-screen hidden">
-    <div class="login-glow"></div>
+    <div class="auth-aside">
+      <div class="brand brand-large"><span class="brand-mark" data-brand-mark><span class="hidden" data-brand-initials>PF</span><img data-brand-default-logo src="/logo.svg" alt=""><img class="hidden" data-brand-logo alt=""></span><span><b data-system-name>ProxyFleet</b><small>CONTROL PLANE</small></span></div>
+      <div class="auth-aside-copy">
+        <span class="auth-label">PRIVATE INFRASTRUCTURE</span>
+        <h2>Ваша сеть. Ваши серверы. Ваши правила.</h2>
+        <p>Контроль нод и прокси-доступов без внешних зависимостей.</p>
+      </div>
+      <p class="auth-footnote">Self-hosted · Данные остаются на вашем сервере</p>
+    </div>
     <form id="login-form" class="login-card">
-      <div class="brand brand-large"><span class="brand-mark">PF</span><span><b>ProxyFleet</b><small>CONTROL PLANE</small></span></div>
       <div>
-        <p class="eyebrow">ПРИВАТНАЯ ИНФРАСТРУКТУРА</p>
-        <h1>Управляйте всеми нодами из одного места</h1>
-        <p class="muted">Войдите, чтобы открыть карту сети, пользователей и состояние Telegram.</p>
+        <p class="eyebrow">ВХОД В ПАНЕЛЬ</p>
+        <h1>С возвращением</h1>
+        <p class="muted">Введите данные владельца, чтобы продолжить.</p>
       </div>
       <label>Логин<input name="username" autocomplete="username" placeholder="admin" required></label>
       <label>Пароль<input name="password" type="password" autocomplete="current-password" required></label>
@@ -50,56 +64,131 @@
   </section>
 
   <div id="app" class="app-shell hidden">
-    <aside class="sidebar">
-      <div class="brand"><span class="brand-mark">PF</span><span><b>ProxyFleet</b><small>CONTROL PLANE</small></span></div>
+    <div class="utility-dock" aria-label="Быстрые действия">
+      <span id="app-version" class="utility-version" title="Версия ProxyFleet"><span class="version-signal" aria-hidden="true"><i></i><i></i><i></i><i></i></span><b>v0.1.0</b></span>
+      <a class="utility-github" href="https://github.com/neluckoff/proxyfleet" target="_blank" rel="noreferrer" aria-label="ProxyFleet на GitHub">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2a10 10 0 0 0-3.16 19.49c.5.09.68-.22.68-.48v-1.88c-2.78.6-3.37-1.18-3.37-1.18-.45-1.16-1.11-1.47-1.11-1.47-.91-.62.07-.61.07-.61 1 .07 1.53 1.03 1.53 1.03.9 1.53 2.35 1.09 2.92.83.09-.65.35-1.09.64-1.34-2.22-.25-4.56-1.11-4.56-4.94 0-1.09.39-1.98 1.03-2.68-.1-.25-.45-1.27.1-2.64 0 0 .84-.27 2.75 1.02A9.58 9.58 0 0 1 12 6.82a9.6 9.6 0 0 1 2.5.34c1.91-1.29 2.75-1.02 2.75-1.02.55 1.37.2 2.39.1 2.64.64.7 1.03 1.59 1.03 2.68 0 3.84-2.34 4.69-4.57 4.94.36.31.68.92.68 1.86v2.75c0 .27.18.58.69.48A10 10 0 0 0 12 2Z"/></svg>
+        <span class="github-star" aria-hidden="true">☆</span><b id="github-stars">GitHub</b>
+      </a>
+      <button id="open-recap" class="utility-icon-button recap-trigger" type="button" aria-label="Создать карточку платформы" title="Карточка платформы">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 .72 2.28A5 5 0 0 0 16 8.56l2.28.72-2.28.72a5 5 0 0 0-3.28 3.28L12 15.56l-.72-2.28A5 5 0 0 0 8 10l-2.28-.72L8 8.56a5 5 0 0 0 3.28-3.28L12 3ZM18.5 14l.36 1.14A2.5 2.5 0 0 0 20.5 16.8l1.14.36-1.14.36a2.5 2.5 0 0 0-1.64 1.64L18.5 20.3l-.36-1.14a2.5 2.5 0 0 0-1.64-1.64l-1.14-.36 1.14-.36a2.5 2.5 0 0 0 1.64-1.64L18.5 14Z"/></svg>
+      </button>
+      <div class="language-control">
+        <button id="language-toggle" class="utility-icon-button" type="button" aria-label="Изменить язык" aria-expanded="false" title="Язык интерфейса"><span class="language-symbol">文<small>A</small></span></button>
+        <div id="language-menu" class="language-menu hidden" role="menu">
+          <button type="button" data-locale="ru" role="menuitem"><span>🇷🇺</span><b>Русский</b><i></i></button>
+          <button type="button" data-locale="en" role="menuitem"><span>🇬🇧</span><b>English</b><i></i></button>
+        </div>
+      </div>
+      <button id="utility-logout" class="utility-icon-button utility-logout" type="button" aria-label="Выйти" title="Выйти">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 4H5a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h5M14 8l4 4-4 4M18 12H9"/></svg>
+      </button>
+    </div>
+    <aside class="sidebar" aria-label="Основная навигация">
+      <div class="brand"><span class="brand-mark" data-brand-mark><span class="hidden" data-brand-initials>PF</span><img data-brand-default-logo src="/logo.svg" alt=""><img class="hidden" data-brand-logo alt=""></span><span><b data-system-name>ProxyFleet</b><small>CONTROL PLANE</small></span></div>
       <nav>
-        <button class="nav-item active" data-view="dashboard"><span class="nav-icon">⌘</span>Обзор</button>
-        <button class="nav-item" data-view="nodes"><span class="nav-icon">◇</span>Ноды <span id="nodes-badge" class="nav-badge">0</span></button>
-        <button class="nav-item" data-view="users"><span class="nav-icon">♙</span>Пользователи</button>
-        <button class="nav-item" data-view="events"><span class="nav-icon">≋</span>События</button>
+        <p class="nav-section">ОБЗОР</p>
+        <a class="nav-item active" href="/" data-view="dashboard"><span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M4 13h6V4H4v9Zm0 7h6v-4H4v4Zm10 0h6v-9h-6v9Zm0-16v4h6V4h-6Z"/></svg></span>Обзор</a>
+        <p class="nav-section">ИНФРАСТРУКТУРА</p>
+        <a class="nav-item" href="/nodes" data-view="nodes"><span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M5 5h14v5H5V5Zm0 9h14v5H5v-5Z"/><path d="M8 7.5h.01M8 16.5h.01"/></svg></span>Ноды <span id="nodes-badge" class="nav-badge">0</span></a>
+        <a class="nav-item" href="/proxies" data-view="proxies"><span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M7 12a5 5 0 1 1 4.7 5H9l-2 2H4v-3l3-3v-1Z"/><path d="m15 9 2 2M12.5 11.5l2 2"/></svg></span>Прокси</a>
+        <p class="nav-section">СИСТЕМА</p>
+        <a class="nav-item" href="/events" data-view="events"><span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg></span>Журнал</a>
+        <a class="nav-item" href="/settings" data-view="settings"><span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.87l.06.06-2.83 2.83-.06-.06a1.7 1.7 0 0 0-1.87-.34 1.7 1.7 0 0 0-1.04 1.55V21h-4v-.09A1.7 1.7 0 0 0 8.96 19.36a1.7 1.7 0 0 0-1.87.34l-.06.06-2.83-2.83.06-.06A1.7 1.7 0 0 0 4.6 15a1.7 1.7 0 0 0-1.51-1H3v-4h.09A1.7 1.7 0 0 0 4.6 9a1.7 1.7 0 0 0-.34-1.87L4.2 7.07l2.83-2.83.06.06A1.7 1.7 0 0 0 8.96 4 1.7 1.7 0 0 0 10 2.45V2h4v.45A1.7 1.7 0 0 0 15.04 4a1.7 1.7 0 0 0 1.87-.34l.06-.06 2.83 2.83-.06.06A1.7 1.7 0 0 0 19.4 9a1.7 1.7 0 0 0 1.51 1H21v4h-.09A1.7 1.7 0 0 0 19.4 15Z"/></svg></span>Настройки</a>
       </nav>
       <div class="sidebar-bottom">
-        <div class="control-status"><span class="pulse"></span><span><b>Control plane</b><small>Система работает</small></span></div>
-        <button id="logout" class="logout-button">Выйти</button>
+        <div class="control-status"><span class="pulse"></span><span><b>Система работает</b><small>Control plane доступен</small></span></div>
+        <button id="logout" class="logout-button"><span id="current-user-avatar">A</span><span><b id="current-user">Администратор</b><small>Выйти из аккаунта</small></span></button>
       </div>
     </aside>
 
     <main class="main">
-      <header class="topbar">
-        <div><p class="eyebrow" id="section-kicker">СЕТЬ</p><h2 id="section-title">Обзор</h2></div>
-        <div class="top-actions">
-          <div class="live-label"><span class="pulse"></span>LIVE</div>
-          <button class="button primary" data-action="new-node">+ Добавить ноду</button>
-        </div>
-      </header>
-
       <section id="view-dashboard" class="view active">
-        <div class="hero-panel">
-          <div>
-            <p class="eyebrow lime">СОСТОЯНИЕ СЕТИ</p>
-            <h1><span id="healthy-count">0</span> нод готовы<br>принимать трафик</h1>
-            <p id="network-summary" class="hero-copy">Подключите первую ноду, чтобы развернуть приватную proxy-сеть.</p>
-          </div>
-          <div class="orbital" aria-hidden="true"><div class="orbit orbit-one"></div><div class="orbit orbit-two"></div><div class="core-dot"></div></div>
+        <div class="page-intro dashboard-intro">
+          <div><h1>Вся сеть.<br>Под вашим контролем.</h1><p>Ноды, соединения и доступы — в одном точном представлении.</p></div>
+          <div class="page-intro-actions"><span class="last-update">Обновляется автоматически</span><button class="button primary" data-action="new-node">+ Добавить ноду</button></div>
+        </div>
+
+        <div class="network-summary">
+          <div class="summary-icon"><span class="pulse"></span></div>
+          <div><span class="summary-label">ГОТОВНОСТЬ СЕТИ</span><b><span id="healthy-count">0</span> нод готовы<br>принимать трафик.</b><p id="network-summary">Подключите первую ноду, чтобы развернуть приватную proxy-сеть.</p></div>
+          <button class="text-button" data-view-link="nodes">Открыть инфраструктуру</button>
         </div>
 
         <div class="metric-grid">
-          <article class="metric-card"><span class="metric-icon green">◇</span><div><small>Ноды онлайн</small><strong id="metric-online">0 / 0</strong></div><span id="online-trend" class="chip">—</span></article>
-          <article class="metric-card"><span class="metric-icon violet">↯</span><div><small>Активные соединения</small><strong id="metric-connections">0</strong></div><span class="chip neutral">сейчас</span></article>
-          <article class="metric-card"><span class="metric-icon blue">⇅</span><div><small>Передано данных</small><strong id="metric-traffic">0 Б</strong></div><span class="chip neutral">всего</span></article>
-          <article class="metric-card"><span class="metric-icon amber">♙</span><div><small>Пользователи</small><strong id="metric-users">0</strong></div><span class="chip neutral">доступы</span></article>
+          <article class="metric-card"><div class="metric-label"><span>Ноды онлайн</span><i class="metric-dot green"></i></div><strong id="metric-online">0 / 0</strong><small id="online-trend">—</small></article>
+          <article class="metric-card"><div class="metric-label"><span>Активные соединения</span><i class="metric-dot blue"></i></div><strong id="metric-connections">0</strong><small>в текущий момент</small></article>
+          <article class="metric-card"><div class="metric-label"><span>Передано данных</span><i class="metric-dot violet"></i></div><strong id="metric-traffic">0 Б</strong><small>за всё время</small></article>
+          <article class="metric-card"><div class="metric-label"><span>Прокси</span><i class="metric-dot amber"></i></div><strong id="metric-users">0</strong><small>созданных прокси</small></article>
         </div>
 
-        <div class="split-grid">
-          <article class="panel">
-            <div class="panel-head"><div><p class="eyebrow">ИНФРАСТРУКТУРА</p><h3>Состояние нод</h3></div><button class="text-button" data-view-link="nodes">Все ноды →</button></div>
-            <div id="dashboard-nodes" class="node-list empty-state">Ноды пока не подключены</div>
+        <div class="activity-grid">
+          <article class="activity-card user-activity-card">
+            <div class="activity-head">
+              <div><span class="activity-kicker">ПОСЛЕДНИЕ 24 ЧАСА</span><h3>Активность прокси</h3><p>Одновременные подключения к proxy-сети</p></div>
+              <div class="activity-current"><strong id="activity-users-now">0</strong><span>сейчас</span></div>
+            </div>
+            <div id="activity-users-chart" class="activity-chart" aria-label="График активности прокси"></div>
+            <div class="activity-axis"><span>24 часа назад</span><span>12 часов</span><span>сейчас</span></div>
           </article>
-          <article class="panel">
-            <div class="panel-head"><div><p class="eyebrow">ПОСЛЕДНИЕ ИЗМЕНЕНИЯ</p><h3>Лента событий</h3></div><button class="text-button" data-view-link="events">Журнал →</button></div>
-            <div id="dashboard-events" class="timeline empty-state">Событий пока нет</div>
+          <article class="activity-card node-activity-card">
+            <div class="activity-head">
+              <div><span class="activity-kicker">ПОСЛЕДНИЕ 24 ЧАСА</span><h3>Активность нод</h3><p>Количество доступных нод в сети</p></div>
+              <div class="activity-current"><strong id="activity-nodes-now">0</strong><span>онлайн</span></div>
+            </div>
+            <div id="activity-nodes-chart" class="activity-chart" aria-label="График активности нод"></div>
+            <div class="activity-axis"><span>24 часа назад</span><span>12 часов</span><span>сейчас</span></div>
           </article>
         </div>
+
+        <section class="analytics-section" aria-label="Метрики инфраструктуры">
+          <article class="analytics-panel traffic-analytics">
+            <div class="analytics-panel-head"><h3>Трафик</h3><div class="analytics-panel-total"><small>За всё время</small><strong id="analytics-traffic-total">0 Б</strong></div></div>
+            <div class="analytics-stat-grid traffic-stat-grid">
+              <div class="analytics-stat tone-blue"><span class="analytics-glyph">24</span><div><small>Сегодня</small><strong id="analytics-traffic-today">0 Б</strong><em id="analytics-traffic-today-trend">собираем данные</em></div></div>
+              <div class="analytics-stat tone-green"><span class="analytics-glyph">7D</span><div><small>Последние 7 дней</small><strong id="analytics-traffic-week">0 Б</strong><em id="analytics-traffic-week-trend">собираем данные</em></div></div>
+              <div class="analytics-stat tone-violet"><span class="analytics-glyph">30</span><div><small>Последние 30 дней</small><strong id="analytics-traffic-month">0 Б</strong><em>скользящий период</em></div></div>
+              <div class="analytics-stat tone-amber"><span class="analytics-glyph">M</span><div><small>Календарный месяц</small><strong id="analytics-traffic-calendar">0 Б</strong><em>с начала месяца</em></div></div>
+              <div class="analytics-stat tone-blue"><span class="analytics-glyph">Y</span><div><small>Текущий год</small><strong id="analytics-traffic-year">0 Б</strong><em>с 1 января</em></div></div>
+              <div class="analytics-stat tone-cyan"><span class="analytics-glyph">↑</span><div><small>От клиентов</small><strong id="analytics-traffic-up">0 Б</strong><em>исходящий трафик</em></div></div>
+              <div class="analytics-stat tone-green"><span class="analytics-glyph">↓</span><div><small>К клиентам</small><strong id="analytics-traffic-down">0 Б</strong><em>входящий трафик</em></div></div>
+            </div>
+          </article>
+
+          <div class="analytics-columns">
+            <article class="analytics-panel">
+              <div class="analytics-panel-head"><h3>Доступность</h3></div>
+              <div class="analytics-stat-grid compact-stat-grid">
+                <div class="analytics-stat tone-green"><span class="analytics-glyph">●</span><div><small>В сети</small><strong id="analytics-nodes-online">0</strong><em>готовы принимать трафик</em></div></div>
+                <div class="analytics-stat tone-red"><span class="analytics-glyph">×</span><div><small>Офлайн</small><strong id="analytics-nodes-offline">0</strong><em>требуют внимания</em></div></div>
+                <div class="analytics-stat tone-amber"><span class="analytics-glyph">…</span><div><small>Ожидают</small><strong id="analytics-nodes-pending">0</strong><em>агент ещё не подключён</em></div></div>
+                <div class="analytics-stat tone-blue"><span class="analytics-glyph">TG</span><div><small>Telegram доступен</small><strong id="analytics-telegram-healthy">0</strong><em id="analytics-telegram-latency">задержка —</em></div></div>
+              </div>
+            </article>
+
+            <article class="analytics-panel">
+              <div class="analytics-panel-head"><h3>Прокси</h3></div>
+              <div class="analytics-stat-grid compact-stat-grid">
+                <div class="analytics-stat tone-blue"><span class="analytics-glyph">∑</span><div><small>Всего</small><strong id="analytics-users-total">0</strong><em>созданных прокси</em></div></div>
+                <div class="analytics-stat tone-green"><span class="analytics-glyph">✓</span><div><small>Активны</small><strong id="analytics-users-enabled">0</strong><em>могут подключаться</em></div></div>
+                <div class="analytics-stat tone-red"><span class="analytics-glyph">−</span><div><small>Отключены</small><strong id="analytics-users-disabled">0</strong><em>доступ остановлен</em></div></div>
+                <div class="analytics-stat tone-amber"><span class="analytics-glyph">?</span><div><small>Без нод</small><strong id="analytics-users-unassigned">0</strong><em>нужно назначение</em></div></div>
+              </div>
+            </article>
+          </div>
+
+          <article class="analytics-panel system-analytics">
+            <div class="analytics-panel-head"><h3>Ресурсы агентов</h3><span id="analytics-telemetry-nodes" class="analytics-panel-total">0 агентов</span></div>
+            <div class="analytics-stat-grid system-stat-grid">
+              <div class="analytics-stat tone-green"><span class="analytics-glyph">H</span><div><small>Heap used</small><strong id="analytics-heap">0 Б</strong><em>память Go-процессов</em></div></div>
+              <div class="analytics-stat tone-cyan"><span class="analytics-glyph">R</span><div><small>Runtime memory</small><strong id="analytics-runtime-memory">0 Б</strong><em>зарезервировано runtime</em></div></div>
+              <div class="analytics-stat tone-violet"><span class="analytics-glyph">RAM</span><div><small>Память серверов</small><strong id="analytics-host-memory">0 Б</strong><em id="analytics-host-memory-total">из 0 Б</em></div></div>
+              <div class="analytics-stat tone-blue"><span class="analytics-glyph">G</span><div><small>Goroutines</small><strong id="analytics-goroutines">0</strong><em>во всех агентах</em></div></div>
+              <div class="analytics-stat tone-amber"><span class="analytics-glyph">L</span><div><small>Средняя нагрузка</small><strong id="analytics-load">0.00</strong><em>load average · 1 мин</em></div></div>
+              <div class="analytics-stat tone-green"><span class="analytics-glyph">U</span><div><small>Средний uptime</small><strong id="analytics-uptime">—</strong><em>без перезапуска агента</em></div></div>
+            </div>
+          </article>
+        </section>
       </section>
 
       <section id="view-nodes" class="view">
@@ -107,10 +196,10 @@
         <div id="nodes-grid" class="nodes-grid"></div>
       </section>
 
-      <section id="view-users" class="view">
-        <div class="page-intro"><div><h1>Пользователи</h1><p>Единые доступы, которые автоматически доставляются на выбранные ноды.</p></div><button class="button primary" data-action="new-user">+ Создать доступ</button></div>
-        <article class="panel table-panel">
-          <div class="table-scroll"><table><thead><tr><th>Пользователь</th><th>Логин</th><th>Ноды</th><th>Состояние</th><th>Создан</th><th></th></tr></thead><tbody id="users-table"></tbody></table></div>
+      <section id="view-proxies" class="view">
+        <div class="page-intro"><div><h1>Прокси</h1><p>Готовые HTTP и SOCKS5 подключения с отдельными доступами и управлением.</p></div><button class="button primary" data-action="new-proxy">+ Создать прокси</button></div>
+        <article class="panel table-panel proxy-table-panel">
+          <div class="table-scroll"><table class="proxy-table"><thead><tr><th>Прокси</th><th>Протокол</th><th>Адрес</th><th>Логин</th><th>Нода</th><th>Состояние</th><th>Создан</th><th></th></tr></thead><tbody id="proxies-table"></tbody></table></div>
         </article>
       </section>
 
@@ -118,13 +207,55 @@
         <div class="page-intro"><div><h1>Журнал событий</h1><p>Подключения, изменения конфигурации и проверки доступности.</p></div></div>
         <article class="panel"><div id="events-list" class="event-log"></div></article>
       </section>
+
+      <section id="view-settings" class="view">
+        <div class="page-intro"><div><h1>Настройки</h1><p>Безопасность, уведомления и оформление control plane.</p></div></div>
+        <div class="settings-layout">
+          <article class="settings-card">
+            <div class="settings-card-head"><div><span class="settings-number">01</span><h2>Оформление</h2><p>Название и логотип, которые видны в панели и на экране входа.</p></div></div>
+            <form id="branding-form" class="settings-form">
+              <div class="branding-control">
+                <div id="branding-preview" class="branding-preview"><span class="hidden" data-preview-initials>PF</span><img data-preview-default-logo src="/logo.svg" alt=""><img class="hidden" data-preview-logo alt="Предпросмотр логотипа"></div>
+                <div><label class="button secondary file-button" for="branding-logo">Выбрать логотип</label><input id="branding-logo" class="visually-hidden" type="file" accept="image/png,image/jpeg,image/webp"><button id="branding-logo-remove" class="settings-text-button" type="button">Удалить</button><small>PNG, JPEG или WebP · до 512 КБ</small></div>
+              </div>
+              <label>Название системы<input name="systemName" minlength="2" maxlength="64" placeholder="ProxyFleet" required></label>
+              <div class="settings-actions"><button class="button primary" type="submit">Сохранить оформление</button></div>
+            </form>
+          </article>
+
+          <article class="settings-card">
+            <div class="settings-card-head"><div><span class="settings-number">02</span><h2>Пароль владельца</h2><p>После изменения остальные активные сессии завершатся.</p></div></div>
+            <form id="password-form" class="settings-form">
+              <label>Текущий пароль<input name="currentPassword" type="password" autocomplete="current-password" required></label>
+              <label>Новый пароль<input name="newPassword" type="password" autocomplete="new-password" minlength="12" required></label>
+              <label>Повторите новый пароль<input name="passwordConfirm" type="password" autocomplete="new-password" minlength="12" required></label>
+              <p class="settings-hint">Минимум 12 символов. Текущая сессия будет обновлена автоматически.</p>
+              <div class="settings-actions"><button class="button primary" type="submit">Изменить пароль</button></div>
+            </form>
+          </article>
+
+          <article class="settings-card telegram-settings-card">
+            <div class="settings-card-head telegram-card-head"><div><span class="settings-number">03</span><h2>Telegram-уведомления</h2><p>Получайте сообщения о нодах, проверках Telegram и изменениях доступов.</p></div><span id="telegram-status" class="settings-status">Не настроено</span></div>
+            <form id="telegram-form" class="settings-form">
+              <label class="settings-switch-row"><span><b>Отправлять уведомления</b><small>Можно временно выключить, не удаляя токен.</small></span><input id="telegram-enabled" name="enabled" type="checkbox"><i></i></label>
+              <div class="settings-fields-grid">
+                <label class="span-2">Токен бота<input name="botToken" type="password" autocomplete="off" placeholder="Оставьте пустым, чтобы не менять"><span class="field-hint">Создайте бота через @BotFather и вставьте выданный токен.</span></label>
+                <label>Chat ID<input name="chatId" autocomplete="off" placeholder="123456789 или @channel"><span class="field-hint">Личный чат, группа или канал.</span></label>
+                <label>HTTP(S)-прокси<input name="proxyUrl" autocomplete="off" placeholder="http://user:pass@host:3128"><span class="field-hint">Можно оставить пустым для прямого подключения.</span></label>
+              </div>
+              <div class="telegram-connection"><span class="telegram-mark">TG</span><div><b id="telegram-bot-name">Бот ещё не проверен</b><small id="telegram-connection-copy">Сохраните настройки и отправьте тестовое сообщение.</small></div></div>
+              <div class="settings-actions split-actions"><button id="telegram-disconnect" class="settings-danger-button hidden" type="button">Удалить подключение</button><span></span><button id="telegram-test" class="button secondary" type="button">Отправить тест</button><button class="button primary" type="submit">Сохранить Telegram</button></div>
+            </form>
+          </article>
+        </div>
+      </section>
     </main>
   </div>
 
   <dialog id="node-dialog" class="modal">
     <form id="node-form" method="dialog">
-      <div class="modal-head"><div><p class="eyebrow">НОВАЯ НОДА</p><h3>Подключить сервер</h3></div><button class="icon-button" value="cancel" aria-label="Закрыть">×</button></div>
-      <p class="muted">После создания появится одноразовая Docker-команда. Выполните её на новом VPS.</p>
+      <div class="modal-head"><div><p id="node-dialog-eyebrow" class="eyebrow">НОВАЯ НОДА</p><h3 id="node-dialog-title">Подключить сервер</h3></div><button class="icon-button" type="button" data-close-dialog aria-label="Закрыть">×</button></div>
+      <p id="node-dialog-copy" class="muted">После создания появится одноразовая Docker-команда. Выполните её на новом VPS.</p>
       <div class="form-grid">
         <label class="span-2">Название<input name="name" placeholder="Amsterdam Edge 01" required></label>
         <label>Регион<input name="region" placeholder="NL · Amsterdam"></label>
@@ -133,32 +264,94 @@
         <label>SOCKS5 порт<input name="socksPort" type="number" min="1024" max="65535" value="1080" required></label>
       </div>
       <p class="form-error" data-form-error></p>
-      <div class="modal-actions"><button class="button secondary" value="cancel">Отмена</button><button class="button primary" type="submit">Создать ноду</button></div>
+      <div class="modal-actions"><button class="button secondary" type="button" data-close-dialog>Отмена</button><button id="node-submit-button" class="button primary" type="submit">Создать ноду</button></div>
     </form>
   </dialog>
 
-  <dialog id="user-dialog" class="modal">
-    <form id="user-form" method="dialog">
-      <div class="modal-head"><div><p class="eyebrow">НОВЫЙ ДОСТУП</p><h3>Создать пользователя</h3></div><button class="icon-button" value="cancel" aria-label="Закрыть">×</button></div>
+  <dialog id="proxy-dialog" class="modal proxy-create-modal">
+    <form id="proxy-form" method="dialog">
+      <div class="modal-head"><div><p class="eyebrow">НОВЫЙ ПРОКСИ</p><h3>Создать прокси</h3></div><button class="icon-button" type="button" data-close-dialog aria-label="Закрыть">×</button></div>
+      <p class="muted">Выберите ноду и протокол — готовая ссылка появится сразу после создания.</p>
       <div class="form-grid">
-        <label>Название<input name="name" placeholder="MineDecor bot" required></label>
-        <label>Логин<input name="username" placeholder="minedecor" required></label>
-        <label class="span-2">Пароль <span class="label-note">оставьте пустым для генерации</span><input name="password" type="password" minlength="12" placeholder="Будет сгенерирован автоматически"></label>
-        <fieldset class="span-2"><legend>Доступные ноды</legend><div id="user-node-options" class="check-grid"></div></fieldset>
+        <fieldset class="span-2"><legend>Протокол</legend><div class="protocol-picker"><label><input type="radio" name="protocol" value="http" checked><span><b>HTTP</b><small>Совместим с браузерами и API-клиентами</small></span></label><label><input type="radio" name="protocol" value="socks5"><span><b>SOCKS5</b><small>Универсальный TCP-прокси</small></span></label></div></fieldset>
+        <label class="span-2">Нода<select id="proxy-node-select" name="nodeId" required></select></label>
+        <label>Название <span class="label-note">необязательно</span><input name="name" placeholder="Telegram bot"></label>
+        <label>Логин<input name="username" minlength="3" maxlength="64" pattern="[A-Za-z0-9._-]+" placeholder="telegram_bot" required></label>
+        <label class="span-2">Пароль <span class="label-note">оставьте пустым для генерации</span><span class="password-composer"><input name="password" type="text" minlength="12" autocomplete="new-password" placeholder="Будет сгенерирован автоматически"><button id="generate-proxy-password" type="button">Сгенерировать</button></span></label>
       </div>
+      <div class="proxy-preview"><small>БУДУЩИЙ АДРЕС</small><code id="proxy-create-preview">http://login:••••@node:3128</code></div>
       <p class="form-error" data-form-error></p>
-      <div class="modal-actions"><button class="button secondary" value="cancel">Отмена</button><button class="button primary" type="submit">Создать доступ</button></div>
+      <div class="modal-actions"><button class="button secondary" type="button" data-close-dialog>Отмена</button><button class="button primary" type="submit">Создать прокси</button></div>
     </form>
+  </dialog>
+
+  <dialog id="proxy-detail-dialog" class="modal proxy-detail-modal">
+    <div class="modal-head"><div><p id="proxy-detail-protocol" class="eyebrow">HTTP ПРОКСИ</p><h3 id="proxy-detail-name">Прокси</h3></div><button class="icon-button" type="button" data-close-dialog aria-label="Закрыть">×</button></div>
+    <div class="proxy-detail-status-row"><span id="proxy-detail-status" class="status-pill">Ожидает</span><span id="proxy-detail-status-copy" class="muted">Проверяем состояние ноды</span></div>
+    <div class="proxy-detail-url"><small>СТРОКА ПОДКЛЮЧЕНИЯ</small><code id="proxy-detail-url">—</code><p>Пароль скрыт. Полная ссылка повторно выдаётся при смене пароля.</p></div>
+    <dl class="proxy-detail-list"><div><dt>Нода</dt><dd id="proxy-detail-node">—</dd></div><div><dt>Логин</dt><dd id="proxy-detail-login">—</dd></div><div><dt>Адрес</dt><dd id="proxy-detail-endpoint">—</dd></div><div><dt>Создан</dt><dd id="proxy-detail-created">—</dd></div></dl>
+    <div class="proxy-detail-config"><label>Протокол<select id="proxy-edit-protocol"><option value="http">HTTP</option><option value="socks5">SOCKS5</option></select></label><label>Нода<select id="proxy-edit-node"></select></label><button id="proxy-save-settings" class="button secondary" type="button">Сохранить настройки</button></div>
+    <div class="proxy-detail-actions"><button id="proxy-toggle" class="button secondary" type="button">Отключить прокси</button><button id="proxy-reset-password" class="button primary" type="button">Сменить пароль</button></div>
   </dialog>
 
   <dialog id="secret-dialog" class="modal secret-modal">
-    <div class="modal-head"><div><p class="eyebrow lime">ГОТОВО</p><h3 id="secret-title">Нода создана</h3></div><button class="icon-button" data-close-dialog>×</button></div>
+    <div class="modal-head"><div><p class="eyebrow lime">ГОТОВО</p><h3 id="secret-title">Нода создана</h3></div><button class="icon-button" type="button" data-close-dialog aria-label="Закрыть">×</button></div>
     <p id="secret-copy" class="muted"></p>
-    <div class="secret-box"><code id="secret-value"></code><button id="copy-secret" class="copy-button">Копировать</button></div>
+    <div class="secret-box"><code id="secret-value"></code></div>
+    <button id="copy-secret" class="copy-button secret-copy-button" type="button" aria-live="polite">Копировать</button>
     <p class="warning-note">Значение показывается только сейчас. Сохраните его в безопасном месте.</p>
     <div class="modal-actions"><button class="button primary" data-close-dialog>Готово</button></div>
   </dialog>
 
+  <dialog id="recap-dialog" class="recap-modal">
+    <div class="recap-modal-head">
+      <div><span class="recap-title-icon" aria-hidden="true">✦</span><span><small>SHARE CARD</small><h2>Карточка платформы</h2></span></div>
+      <button class="icon-button" type="button" data-close-dialog aria-label="Закрыть">×</button>
+    </div>
+    <div class="recap-layout">
+      <div class="recap-preview-shell">
+        <article id="recap-card" class="recap-card background-gradient">
+          <div class="recap-brand"><span class="recap-brand-mark"><img data-recap-logo src="/logo.svg" alt=""><span class="hidden" data-recap-mark>PF</span></span><b data-recap-name>ProxyFleet</b></div>
+          <div class="recap-primary"><strong id="recap-users">0</strong><span>ПРОКСИ</span></div>
+          <div class="recap-pair" data-recap-section="network"><div><strong id="recap-nodes">0</strong><span>НОД</span></div><div><strong id="recap-traffic">0 Б</strong><span>ТРАФИКА</span></div></div>
+          <div class="recap-divider"></div>
+          <div class="recap-period" data-recap-section="period"><small id="recap-month">ОКТЯБРЬ 2026</small><div><div><strong id="recap-online">0</strong><span>НОД ОНЛАЙН</span></div><div><strong id="recap-month-traffic">0 Б</strong><span>ЗА МЕСЯЦ</span></div></div></div>
+          <div class="recap-infrastructure" data-recap-section="system"><small>ИНФРАСТРУКТУРА</small><div><div><strong id="recap-agents">0</strong><span>АГЕНТОВ</span></div><div><strong id="recap-connections">0</strong><span>СОЕДИНЕНИЙ</span></div><div><strong id="recap-memory">0 Б</strong><span>RAM</span></div></div></div>
+          <div class="recap-divider"></div>
+          <div class="recap-footer"><span id="recap-note">Private infrastructure</span><b id="recap-version">v0.1.0</b></div>
+        </article>
+      </div>
+      <div class="recap-controls">
+        <section class="recap-control-card">
+          <span class="recap-control-label">ФОН</span>
+          <div class="segmented-control" data-recap-background><button class="active" type="button" data-background="gradient">Градиент</button><button type="button" data-background="solid">Сплошной</button><button type="button" data-background="grid">Сетка</button></div>
+        </section>
+        <section class="recap-control-card">
+          <span class="recap-control-label">РАЗДЕЛЫ</span>
+          <label class="recap-switch"><span>Ноды и трафик</span><input type="checkbox" data-recap-toggle="network" checked><i></i></label>
+          <label class="recap-switch"><span>Текущий месяц</span><input type="checkbox" data-recap-toggle="period" checked><i></i></label>
+          <label class="recap-switch"><span>Инфраструктура</span><input type="checkbox" data-recap-toggle="system" checked><i></i></label>
+        </section>
+        <section class="recap-control-card">
+          <label class="recap-control-label" for="recap-note-input">ПОДПИСЬ</label>
+          <input id="recap-note-input" maxlength="42" value="Private infrastructure" placeholder="Private infrastructure">
+        </section>
+        <section class="recap-control-card">
+          <span class="recap-control-label">АКЦЕНТ</span>
+          <div class="recap-palette" data-recap-palette>
+            <button class="active" type="button" data-color="#64d2ff" style="--swatch:#64d2ff" aria-label="Голубой"></button>
+            <button type="button" data-color="#00d959" style="--swatch:#00d959" aria-label="Зелёный"></button>
+            <button type="button" data-color="#bf5af2" style="--swatch:#bf5af2" aria-label="Фиолетовый"></button>
+            <button type="button" data-color="#ff9f0a" style="--swatch:#ff9f0a" aria-label="Оранжевый"></button>
+            <button type="button" data-color="#ff375f" style="--swatch:#ff375f" aria-label="Розовый"></button>
+          </div>
+        </section>
+        <div class="recap-actions"><button id="copy-recap" class="button primary" type="button">Скопировать PNG</button><button id="download-recap" class="button secondary" type="button">Скачать</button></div>
+      </div>
+    </div>
+  </dialog>
+
+  <script src="/i18n.js" defer></script>
   <script src="/app.js" defer></script>
 </body>
 </html>

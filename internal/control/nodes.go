@@ -63,6 +63,7 @@ func (s *server) createNode(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusInternalServerError, "Не удалось сохранить ноду")
 		return
 	}
+	s.notify("Создана нода: " + node.Name)
 	writeJSON(w, http.StatusCreated, map[string]any{"node": publicNode(node), "enrollToken": token, "installCommand": s.installCommand(token)})
 }
 
@@ -119,14 +120,22 @@ func (s *server) updateNode(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "Не удалось обновить ноду: "+err.Error())
 		return
 	}
+	s.notify("Обновлена конфигурация ноды: " + updated.Name)
 	writeJSON(w, http.StatusOK, publicNode(updated))
 }
 
 func (s *server) deleteNode(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("id")
+	deletedName := ""
 	err := s.store.update(func(state *model.State) error {
 		before := len(state.Nodes)
-		state.Nodes = slices.DeleteFunc(state.Nodes, func(node *model.Node) bool { return node.ID == id })
+		state.Nodes = slices.DeleteFunc(state.Nodes, func(node *model.Node) bool {
+			if node.ID == id {
+				deletedName = node.Name
+				return true
+			}
+			return false
+		})
 		if len(state.Nodes) == before {
 			return os.ErrNotExist
 		}
@@ -144,12 +153,14 @@ func (s *server) deleteNode(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusInternalServerError, "Не удалось удалить ноду")
 		return
 	}
+	s.notify("Удалена нода: " + deletedName)
 	writeJSON(w, http.StatusOK, map[string]any{"ok": true})
 }
 
 func (s *server) rotateEnrollment(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("id")
 	token := randomToken(32)
+	nodeName := ""
 	err := s.store.update(func(state *model.State) error {
 		node := findNode(state, id)
 		if node == nil {
@@ -158,6 +169,7 @@ func (s *server) rotateEnrollment(w http.ResponseWriter, r *http.Request) {
 		node.EnrollTokenHash = tokenHash(token)
 		node.AgentTokenHash = ""
 		node.LastSeenAt = time.Time{}
+		nodeName = node.Name
 		state.Events = append(state.Events, newEvent("node.enrollment_rotated", "Ключ подключения ноды перевыпущен", id, nil))
 		return nil
 	})
@@ -169,6 +181,7 @@ func (s *server) rotateEnrollment(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusInternalServerError, "Не удалось перевыпустить ключ")
 		return
 	}
+	s.notify("Перевыпущен ключ подключения ноды: " + nodeName)
 	writeJSON(w, http.StatusOK, map[string]any{"enrollToken": token, "installCommand": s.installCommand(token)})
 }
 
@@ -196,6 +209,8 @@ func publicNode(node *model.Node) map[string]any {
 		"agentVersion": node.AgentVersion, "publicIp": node.PublicIP, "telegramOk": node.TelegramOK,
 		"telegramLatencyMs": node.TelegramLatencyMS, "lastError": node.LastError, "uptimeSeconds": node.UptimeSeconds,
 		"activeConnections": node.ActiveConnections, "bytesUp": node.BytesUp, "bytesDown": node.BytesDown, "status": status,
+		"memoryAllocBytes": node.MemoryAllocBytes, "memorySysBytes": node.MemorySysBytes, "goroutines": node.Goroutines,
+		"hostMemoryUsedBytes": node.HostMemoryUsedBytes, "hostMemoryTotalBytes": node.HostMemoryTotalBytes, "loadOne": node.LoadOne,
 	}
 }
 

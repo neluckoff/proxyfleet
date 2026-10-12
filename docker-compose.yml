@@ -3,9 +3,7 @@ name: proxyfleet
 services:
   control:
     container_name: proxyfleet-control
-    build:
-      context: .
-    image: proxyfleet:local
+    image: ${PROXYFLEET_IMAGE:-neluckoff/proxyfleet:latest}
     restart: unless-stopped
     command: ["server"]
     volumes:
