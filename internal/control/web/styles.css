@@ -197,6 +197,7 @@ button { color: inherit; }
 .empty-state { padding: 48px 18px; color: var(--color-steel); font-size: 14px; text-align: center; }
 
 .nodes-grid { display: grid; grid-template-columns: repeat(2, minmax(300px, 1fr)); gap: 24px; }
+.nodes-grid > .empty-state { grid-column: 1 / -1; width: 100%; box-sizing: border-box; }
 .node-card { position: relative; overflow: hidden; padding: 28px; border-radius: var(--radius-card); background: var(--color-absolute-black); }
 .node-card-head { display: flex; justify-content: space-between; gap: 18px; }
 .node-card h3 { margin: 0 0 7px; color: var(--color-polar-white); font-family: var(--font-display); font-size: 21px; font-weight: 600; letter-spacing: .128px; }
