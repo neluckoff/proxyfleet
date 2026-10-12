@@ -273,8 +273,19 @@ docker compose up -d --no-build
 | `CONTROL_URL` | agent | required | Public control-plane URL |
 | `ENROLL_TOKEN` | agent | first start | One-time enrollment token |
 | `AGENT_STATE_PATH` | agent | `/data/agent.json` | Persistent agent state |
+| `AGENT_HEALTH_SOCKET` | agent | `/tmp/proxyfleet-agent-health.sock` | Internal Unix socket used by Docker health checks |
+| `HEALTHCHECK_URL` | control plane | `http://127.0.0.1:8080/health` | Override for the built-in control-plane health check |
 | `HTTP_PROXY_PORT` | node Compose | `3128` | Public HTTP proxy port |
 | `SOCKS_PROXY_PORT` | node Compose | `1080` | Public SOCKS5 proxy port |
+
+### Container health
+
+The published image includes a mode-aware Docker health check. For the control plane it calls the local `/health` endpoint. For an agent it verifies that both proxy listeners are running and that its control-plane configuration has been synchronized recently.
+
+```bash
+docker inspect --format '{{.State.Health.Status}}' proxyfleet-control
+docker inspect --format '{{.State.Health.Status}}' proxyfleet-node
+```
 
 ## 🧑‍💻 Local development
 
@@ -335,11 +346,11 @@ Required GitHub Actions secrets:
 Version tags publish semantic aliases:
 
 ```bash
-git tag v0.2.0
-git push origin v0.2.0
+git tag v0.3.0
+git push origin v0.3.0
 ```
 
-This produces `:0.2.0`, `:0.2`, `:0`, and `:latest`. Manual workflow runs publish `:latest` and `:sha-<commit>`.
+This produces `:0.3.0`, `:0.3`, `:0`, and `:latest`. Manual workflow runs publish `:latest` and `:sha-<commit>`.
 
 ## 🤝 Contributing
 

@@ -11,6 +11,7 @@ import (
 
 	"github.com/neluckoff/proxyfleet/internal/agent"
 	"github.com/neluckoff/proxyfleet/internal/control"
+	"github.com/neluckoff/proxyfleet/internal/healthcheck"
 )
 
 func main() {
@@ -32,8 +33,10 @@ func main() {
 		err = control.Run(ctx, log)
 	case "agent":
 		err = agent.Run(ctx, log)
+	case "healthcheck":
+		err = healthcheck.Run(ctx)
 	default:
-		err = errors.New("usage: proxyfleet [server|agent]")
+		err = errors.New("usage: proxyfleet [server|agent|healthcheck]")
 	}
 
 	if err != nil && !errors.Is(err, context.Canceled) {

@@ -1,4 +1,4 @@
-const state = { me: null, settings: { systemName: 'ProxyFleet', logoDataUrl: '', telegram: {} }, pendingLogoDataURL: null, platform: { version: '0.2.0' }, overview: {}, analytics: {}, activity: { samples: [] }, nodes: [], proxies: [], events: [], pwa: { supported: false, publicKey: '', subscription: null }, pwaSubscription: null, installPrompt: null, view: 'dashboard', refreshTimer: null, editingNodeId: null, selectedProxyId: null, recap: { background: 'gradient', accent: '#64d2ff' } }
+const state = { me: null, settings: { systemName: 'ProxyFleet', logoDataUrl: '', telegram: {} }, pendingLogoDataURL: null, platform: { version: '0.3.0' }, overview: {}, analytics: {}, activity: { samples: [] }, nodes: [], proxies: [], events: [], pwa: { supported: false, publicKey: '', subscription: null }, pwaSubscription: null, installPrompt: null, view: 'dashboard', refreshTimer: null, editingNodeId: null, selectedProxyId: null, recap: { background: 'gradient', accent: '#64d2ff' } }
 const routes = { dashboard: '/', nodes: '/nodes', proxies: '/proxies', events: '/events', settings: '/settings' }
 const pageTitles = { dashboard: 'Обзор', nodes: 'Ноды', proxies: 'Прокси', events: 'Журнал', settings: 'Настройки' }
 
@@ -336,7 +336,7 @@ function renderRecap() {
   $('#recap-memory').textContent = formatBytes(system.hostMemoryUsedBytes || 0)
   $('#recap-month').textContent = new Intl.DateTimeFormat(window.I18n?.localeTag() || 'ru-RU', { month: 'long', year: 'numeric' }).format(new Date()).toUpperCase()
   $('#recap-note').textContent = $('#recap-note-input').value.trim() || tr('Private infrastructure')
-  $('#recap-version').textContent = `v${state.platform.version || state.me?.version || '0.2.0'}`
+  $('#recap-version').textContent = `v${state.platform.version || state.me?.version || '0.3.0'}`
   const card = $('#recap-card')
   card.className = `recap-card background-${state.recap.background}`
   card.style.setProperty('--recap-accent', state.recap.accent)
@@ -422,7 +422,7 @@ function drawRecapCanvas() {
   ctx.font = '600 25px system-ui, sans-serif'
   ctx.fillText(($('#recap-note-input').value.trim() || tr('Private infrastructure')).slice(0, 42), 76, 1137)
   ctx.textAlign = 'right'
-  ctx.fillText(`v${state.platform.version || state.me?.version || '0.2.0'}`, 884, 1137)
+  ctx.fillText(`v${state.platform.version || state.me?.version || '0.3.0'}`, 884, 1137)
   return canvas
 }
 
@@ -515,6 +515,10 @@ function renderNodes() {
   }
   root.innerHTML = state.nodes.map(node => {
     const host = node.advertisedHost || node.publicIp || 'адрес определится после подключения'
+    const agentVersion = String(node.agentVersion || '').replace(/^v/i, '')
+    const agentBadge = agentVersion
+      ? `<span class="node-agent-version" title="Версия агента"><span class="node-agent-signal" aria-hidden="true"><i></i><i></i><i></i></span><span><small>АГЕНТ</small><b>v${escapeHTML(agentVersion)}</b></span></span>`
+      : `<span class="node-agent-version disconnected"><span class="node-agent-signal" aria-hidden="true"><i></i><i></i><i></i></span><span><small>АГЕНТ</small><b>Не подключён</b></span></span>`
     return `<article class="node-card">
       <div class="node-card-head"><div><h3>${escapeHTML(node.name)}</h3><p>${escapeHTML(node.region || 'Регион не указан')}</p></div><span class="status-pill ${node.status}">${statusText(node.status)}</span></div>
       <div class="node-address">HTTP&nbsp; ${escapeHTML(host)}:${node.httpPort}<br>SOCKS ${escapeHTML(host)}:${node.socksPort}</div>
@@ -523,7 +527,7 @@ function renderNodes() {
         <div class="node-stat"><small>СОЕДИНЕНИЯ</small><b>${node.activeConnections || 0}</b></div>
         <div class="node-stat"><small>ТРАФИК</small><b>${formatBytes((node.bytesUp || 0) + (node.bytesDown || 0))}</b></div>
       </div>
-      <div class="node-card-footer"><span>${node.agentVersion ? `agent ${escapeHTML(node.agentVersion)}` : 'агент не подключён'}</span><div class="node-card-actions"><span>${node.lastSeenAt && !node.lastSeenAt.startsWith('0001-') ? timeAgo(node.lastSeenAt) : '—'}</span><button class="text-button" type="button" data-edit-node="${node.id}">Изменить</button></div></div>
+      <div class="node-card-footer">${agentBadge}<div class="node-card-actions"><span>${node.lastSeenAt && !node.lastSeenAt.startsWith('0001-') ? timeAgo(node.lastSeenAt) : '—'}</span><button class="text-button" type="button" data-edit-node="${node.id}">Изменить</button></div></div>
     </article>`
   }).join('')
 }
@@ -1203,6 +1207,34 @@ $('#proxy-reset-password').addEventListener('click', async () => {
     showSecret('Пароль обновлён', 'Старая ссылка больше не работает. Скопируйте новую:', result.proxyUrl || result.password)
     await refreshAll()
   } catch (error) { showToast(error.message) }
+})
+
+$('#proxy-delete').addEventListener('click', () => {
+  const proxy = state.proxies.find(item => item.id === state.selectedProxyId)
+  if (!proxy) return
+  $('#delete-proxy-name').textContent = proxy.name
+  window.I18n?.apply($('#delete-proxy-dialog'))
+  $('#delete-proxy-dialog').showModal()
+})
+
+$('#confirm-delete-proxy').addEventListener('click', async event => {
+  const proxy = state.proxies.find(item => item.id === state.selectedProxyId)
+  if (!proxy) return
+  const button = event.currentTarget
+  button.disabled = true
+  button.textContent = tr('Удаление…')
+  try {
+    await api(`/api/proxies/${proxy.id}`, { method: 'DELETE' })
+    $('#delete-proxy-dialog').close()
+    $('#proxy-detail-dialog').close()
+    state.selectedProxyId = ''
+    await refreshAll()
+    showToast('Прокси удалён')
+  } catch (error) { showToast(error.message) }
+  finally {
+    button.disabled = false
+    button.textContent = tr('Удалить прокси')
+  }
 })
 
 $('#copy-secret').addEventListener('click', async () => {

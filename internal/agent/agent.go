@@ -12,12 +12,13 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync/atomic"
 	"time"
 
 	"github.com/neluckoff/proxyfleet/internal/model"
 )
 
-const agentVersion = "0.2.0"
+const agentVersion = "0.3.0"
 
 type persistedState struct {
 	NodeID     string            `json:"nodeId"`
@@ -38,6 +39,7 @@ type runner struct {
 	tgOK       bool
 	tgLatency  int64
 	lastError  string
+	lastSyncAt atomic.Int64
 }
 
 func Run(ctx context.Context, log *slog.Logger) error {
@@ -65,6 +67,9 @@ func Run(ctx context.Context, log *slog.Logger) error {
 		if err := r.proxy.Apply(ctx, r.state.Config); err != nil {
 			log.Warn("saved proxy config could not be applied", "error", err)
 		}
+	}
+	if err := r.serveHealth(ctx); err != nil {
+		return fmt.Errorf("start health server: %w", err)
 	}
 
 	log.Info("node agent started", "nodeId", r.state.NodeID, "controlUrl", r.controlURL, "version", agentVersion)
@@ -125,6 +130,7 @@ func (r *runner) sync(ctx context.Context) error {
 		return err
 	}
 	if config.Version == r.state.Config.Version && r.proxy.Running() {
+		r.lastSyncAt.Store(time.Now().Unix())
 		return nil
 	}
 	if err := r.proxy.Apply(ctx, config); err != nil {
@@ -135,6 +141,7 @@ func (r *runner) sync(ctx context.Context) error {
 	if err := r.saveState(); err != nil {
 		return err
 	}
+	r.lastSyncAt.Store(time.Now().Unix())
 	r.log.Info("proxy configuration applied", "version", config.Version, "httpPort", config.HTTPPort, "socksPort", config.SOCKSPort, "users", len(config.Users))
 	return nil
 }

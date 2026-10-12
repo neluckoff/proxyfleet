@@ -12,5 +12,6 @@ RUN mkdir -p /data && chown proxyfleet:proxyfleet /data
 USER proxyfleet
 VOLUME ["/data"]
 EXPOSE 8080
+HEALTHCHECK --interval=15s --timeout=5s --start-period=30s --retries=3 CMD ["/usr/local/bin/proxyfleet", "healthcheck"]
 ENTRYPOINT ["/usr/local/bin/proxyfleet"]
 CMD ["server"]

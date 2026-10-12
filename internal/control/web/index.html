@@ -15,6 +15,31 @@
   <link rel="stylesheet" href="/setup.css">
 </head>
 <body>
+  <svg class="icon-sprite" aria-hidden="true">
+    <defs>
+      <symbol id="icon-calendar-day" viewBox="0 0 24 24"><path d="M7 2v3M17 2v3M3.5 9h17M5.5 4h13a2 2 0 0 1 2 2v13a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2Z"/><path d="M8 13h3v3H8z"/></symbol>
+      <symbol id="icon-history" viewBox="0 0 24 24"><path d="M4 5v5h5M4.6 10A8 8 0 1 1 6 18"/><path d="M12 7v5l3 2"/></symbol>
+      <symbol id="icon-calendar-range" viewBox="0 0 24 24"><path d="M7 2v3M17 2v3M3.5 9h17M5.5 4h13a2 2 0 0 1 2 2v13a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2Z"/><path d="M8 14h8M8 17h5"/></symbol>
+      <symbol id="icon-calendar" viewBox="0 0 24 24"><path d="M7 2v3M17 2v3M3.5 9h17M5.5 4h13a2 2 0 0 1 2 2v13a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2Z"/><path d="M8 13h.01M12 13h.01M16 13h.01M8 17h.01M12 17h.01M16 17h.01"/></symbol>
+      <symbol id="icon-calendar-check" viewBox="0 0 24 24"><path d="M7 2v3M17 2v3M3.5 9h17M5.5 4h13a2 2 0 0 1 2 2v13a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2Z"/><path d="m8 15 2.3 2.3L16 12"/></symbol>
+      <symbol id="icon-upload" viewBox="0 0 24 24"><path d="M12 16V3M7 8l5-5 5 5M4 14v5a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-5"/></symbol>
+      <symbol id="icon-download" viewBox="0 0 24 24"><path d="M12 3v13M7 11l5 5 5-5M4 14v5a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-5"/></symbol>
+      <symbol id="icon-server-online" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="6" rx="2"/><rect x="3" y="14" width="18" height="6" rx="2"/><path d="M7 7h.01M7 17h.01M11 7h6M11 17h6"/></symbol>
+      <symbol id="icon-server-off" viewBox="0 0 24 24"><path d="M4.5 4.5A2 2 0 0 0 3 6v2a2 2 0 0 0 2 2h5M14 10h5a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2H8M3 3l18 18M3 16v2a2 2 0 0 0 2 2h12M7 7h.01M7 17h.01"/></symbol>
+      <symbol id="icon-hourglass" viewBox="0 0 24 24"><path d="M6 2h12M6 22h12M7 2c0 5 1.5 7 5 10-3.5 3-5 5-5 10M17 2c0 5-1.5 7-5 10 3.5 3 5 5 5 10"/></symbol>
+      <symbol id="icon-telegram" viewBox="0 0 24 24"><path fill="currentColor" stroke="none" d="M21.6 3.2 18.4 20c-.24 1.18-.9 1.47-1.82.92l-4.88-3.6-2.35 2.26c-.26.26-.48.48-.98.48l.35-4.97 8.9-8.04c.39-.35-.08-.54-.6-.19L6.02 13.8l-4.74-1.48c-1.03-.32-1.05-1.03.21-1.52l18.53-7.14c.86-.31 1.61.19 1.58-.46Z"/></symbol>
+      <symbol id="icon-proxy" viewBox="0 0 24 24"><path d="M7 7h10M7 17h10"/><circle cx="5" cy="7" r="2"/><circle cx="19" cy="17" r="2"/><path d="M17 7a7 7 0 0 1-7 7H7M7 17a7 7 0 0 0 7-7h3"/></symbol>
+      <symbol id="icon-check-circle" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="m8 12 2.6 2.6L16.5 9"/></symbol>
+      <symbol id="icon-pause-circle" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M10 9v6M14 9v6"/></symbol>
+      <symbol id="icon-external" viewBox="0 0 24 24"><path d="M14 4h6v6M20 4l-9 9"/><path d="M18 13v5a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h5"/></symbol>
+      <symbol id="icon-database" viewBox="0 0 24 24"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v6c0 1.7 3.6 3 8 3s8-1.3 8-3V5M4 11v6c0 1.7 3.6 3 8 3s8-1.3 8-3v-6"/></symbol>
+      <symbol id="icon-cpu" viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="2"/><rect x="9" y="9" width="6" height="6" rx="1"/><path d="M9 2v4M15 2v4M9 18v4M15 18v4M2 9h4M2 15h4M18 9h4M18 15h4"/></symbol>
+      <symbol id="icon-memory" viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="12" rx="2"/><path d="M7 10v4M11 10v4M15 10v4M19 10v4M7 18v3M11 18v3M15 18v3M19 18v3"/></symbol>
+      <symbol id="icon-workflow" viewBox="0 0 24 24"><rect x="3" y="3" width="6" height="6" rx="2"/><rect x="15" y="3" width="6" height="6" rx="2"/><rect x="9" y="15" width="6" height="6" rx="2"/><path d="M6 9v3h12V9M12 12v3"/></symbol>
+      <symbol id="icon-gauge" viewBox="0 0 24 24"><path d="M4.6 18a9 9 0 1 1 14.8 0"/><path d="m12 14 4-5M7 18h10"/></symbol>
+      <symbol id="icon-uptime" viewBox="0 0 24 24"><path d="M12 7v5l3 2"/><path d="M5.6 5.6A9 9 0 1 1 3 12M3 5v5h5"/></symbol>
+    </defs>
+  </svg>
   <div id="toast" class="toast" aria-live="polite"></div>
 
   <section id="setup-screen" class="login-screen hidden">
@@ -70,7 +95,7 @@
 
   <div id="app" class="app-shell hidden">
     <div class="utility-dock" aria-label="Быстрые действия">
-      <span id="app-version" class="utility-version" title="Версия ProxyFleet"><span class="version-signal" aria-hidden="true"><i></i><i></i><i></i><i></i></span><b>v0.2.0</b></span>
+      <span id="app-version" class="utility-version" title="Версия ProxyFleet"><span class="version-signal" aria-hidden="true"><i></i><i></i><i></i><i></i></span><b>v0.3.0</b></span>
       <a class="utility-github" href="https://github.com/neluckoff/proxyfleet" target="_blank" rel="noreferrer" aria-label="ProxyFleet на GitHub">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2a10 10 0 0 0-3.16 19.49c.5.09.68-.22.68-.48v-1.88c-2.78.6-3.37-1.18-3.37-1.18-.45-1.16-1.11-1.47-1.11-1.47-.91-.62.07-.61.07-.61 1 .07 1.53 1.03 1.53 1.03.9 1.53 2.35 1.09 2.92.83.09-.65.35-1.09.64-1.34-2.22-.25-4.56-1.11-4.56-4.94 0-1.09.39-1.98 1.03-2.68-.1-.25-.45-1.27.1-2.64 0 0 .84-.27 2.75 1.02A9.58 9.58 0 0 1 12 6.82a9.6 9.6 0 0 1 2.5.34c1.91-1.29 2.75-1.02 2.75-1.02.55 1.37.2 2.39.1 2.64.64.7 1.03 1.59 1.03 2.68 0 3.84-2.34 4.69-4.57 4.94.36.31.68.92.68 1.86v2.75c0 .27.18.58.69.48A10 10 0 0 0 12 2Z"/></svg>
         <span class="github-star" aria-hidden="true">☆</span><b id="github-stars">GitHub</b>
@@ -146,13 +171,13 @@
           <article class="analytics-panel traffic-analytics">
             <div class="analytics-panel-head"><h3>Трафик</h3><div class="analytics-panel-total"><small>За всё время</small><strong id="analytics-traffic-total">0 Б</strong></div></div>
             <div class="analytics-stat-grid traffic-stat-grid">
-              <div class="analytics-stat tone-blue"><span class="analytics-glyph">24</span><div><small>Сегодня</small><strong id="analytics-traffic-today">0 Б</strong><em id="analytics-traffic-today-trend">собираем данные</em></div></div>
-              <div class="analytics-stat tone-green"><span class="analytics-glyph">7D</span><div><small>Последние 7 дней</small><strong id="analytics-traffic-week">0 Б</strong><em id="analytics-traffic-week-trend">собираем данные</em></div></div>
-              <div class="analytics-stat tone-violet"><span class="analytics-glyph">30</span><div><small>Последние 30 дней</small><strong id="analytics-traffic-month">0 Б</strong><em>скользящий период</em></div></div>
-              <div class="analytics-stat tone-amber"><span class="analytics-glyph">M</span><div><small>Календарный месяц</small><strong id="analytics-traffic-calendar">0 Б</strong><em>с начала месяца</em></div></div>
-              <div class="analytics-stat tone-blue"><span class="analytics-glyph">Y</span><div><small>Текущий год</small><strong id="analytics-traffic-year">0 Б</strong><em>с 1 января</em></div></div>
-              <div class="analytics-stat tone-cyan"><span class="analytics-glyph">↑</span><div><small>От клиентов</small><strong id="analytics-traffic-up">0 Б</strong><em>исходящий трафик</em></div></div>
-              <div class="analytics-stat tone-green"><span class="analytics-glyph">↓</span><div><small>К клиентам</small><strong id="analytics-traffic-down">0 Б</strong><em>входящий трафик</em></div></div>
+              <div class="analytics-stat tone-blue"><span class="analytics-glyph"><svg aria-hidden="true"><use href="#icon-calendar-day"></use></svg></span><div><small>Сегодня</small><strong id="analytics-traffic-today">0 Б</strong><em id="analytics-traffic-today-trend">собираем данные</em></div></div>
+              <div class="analytics-stat tone-green"><span class="analytics-glyph"><svg aria-hidden="true"><use href="#icon-history"></use></svg></span><div><small>Последние 7 дней</small><strong id="analytics-traffic-week">0 Б</strong><em id="analytics-traffic-week-trend">собираем данные</em></div></div>
+              <div class="analytics-stat tone-violet"><span class="analytics-glyph"><svg aria-hidden="true"><use href="#icon-calendar-range"></use></svg></span><div><small>Последние 30 дней</small><strong id="analytics-traffic-month">0 Б</strong><em>скользящий период</em></div></div>
+              <div class="analytics-stat tone-amber"><span class="analytics-glyph"><svg aria-hidden="true"><use href="#icon-calendar"></use></svg></span><div><small>Календарный месяц</small><strong id="analytics-traffic-calendar">0 Б</strong><em>с начала месяца</em></div></div>
+              <div class="analytics-stat tone-blue"><span class="analytics-glyph"><svg aria-hidden="true"><use href="#icon-calendar-check"></use></svg></span><div><small>Текущий год</small><strong id="analytics-traffic-year">0 Б</strong><em>с 1 января</em></div></div>
+              <div class="analytics-stat tone-cyan"><span class="analytics-glyph"><svg aria-hidden="true"><use href="#icon-upload"></use></svg></span><div><small>От клиентов</small><strong id="analytics-traffic-up">0 Б</strong><em>исходящий трафик</em></div></div>
+              <div class="analytics-stat tone-green"><span class="analytics-glyph"><svg aria-hidden="true"><use href="#icon-download"></use></svg></span><div><small>К клиентам</small><strong id="analytics-traffic-down">0 Б</strong><em>входящий трафик</em></div></div>
             </div>
           </article>
 
@@ -160,20 +185,20 @@
             <article class="analytics-panel">
               <div class="analytics-panel-head"><h3>Доступность</h3></div>
               <div class="analytics-stat-grid compact-stat-grid">
-                <div class="analytics-stat tone-green"><span class="analytics-glyph">●</span><div><small>В сети</small><strong id="analytics-nodes-online">0</strong><em>готовы принимать трафик</em></div></div>
-                <div class="analytics-stat tone-red"><span class="analytics-glyph">×</span><div><small>Офлайн</small><strong id="analytics-nodes-offline">0</strong><em>требуют внимания</em></div></div>
-                <div class="analytics-stat tone-amber"><span class="analytics-glyph">…</span><div><small>Ожидают</small><strong id="analytics-nodes-pending">0</strong><em>агент ещё не подключён</em></div></div>
-                <div class="analytics-stat tone-blue"><span class="analytics-glyph">TG</span><div><small>Telegram доступен</small><strong id="analytics-telegram-healthy">0</strong><em id="analytics-telegram-latency">задержка —</em></div></div>
+                <div class="analytics-stat tone-green"><span class="analytics-glyph"><svg aria-hidden="true"><use href="#icon-server-online"></use></svg></span><div><small>В сети</small><strong id="analytics-nodes-online">0</strong><em>готовы принимать трафик</em></div></div>
+                <div class="analytics-stat tone-red"><span class="analytics-glyph"><svg aria-hidden="true"><use href="#icon-server-off"></use></svg></span><div><small>Офлайн</small><strong id="analytics-nodes-offline">0</strong><em>требуют внимания</em></div></div>
+                <div class="analytics-stat tone-amber"><span class="analytics-glyph"><svg aria-hidden="true"><use href="#icon-hourglass"></use></svg></span><div><small>Ожидают</small><strong id="analytics-nodes-pending">0</strong><em>агент ещё не подключён</em></div></div>
+                <div class="analytics-stat tone-blue"><span class="analytics-glyph"><svg aria-hidden="true"><use href="#icon-telegram"></use></svg></span><div><small>Telegram доступен</small><strong id="analytics-telegram-healthy">0</strong><em id="analytics-telegram-latency">задержка —</em></div></div>
               </div>
             </article>
 
             <article class="analytics-panel">
               <div class="analytics-panel-head"><h3>Прокси</h3></div>
               <div class="analytics-stat-grid compact-stat-grid">
-                <div class="analytics-stat tone-blue"><span class="analytics-glyph">∑</span><div><small>Всего</small><strong id="analytics-users-total">0</strong><em>созданных прокси</em></div></div>
-                <div class="analytics-stat tone-green"><span class="analytics-glyph">✓</span><div><small>Активны</small><strong id="analytics-users-enabled">0</strong><em>могут подключаться</em></div></div>
-                <div class="analytics-stat tone-red"><span class="analytics-glyph">−</span><div><small>Отключены</small><strong id="analytics-users-disabled">0</strong><em>доступ остановлен</em></div></div>
-                <div class="analytics-stat tone-amber"><span class="analytics-glyph">↗</span><div><small>Внешние</small><strong id="analytics-users-unassigned">0</strong><em>добавлены от провайдеров</em></div></div>
+                <div class="analytics-stat tone-blue"><span class="analytics-glyph"><svg aria-hidden="true"><use href="#icon-proxy"></use></svg></span><div><small>Всего</small><strong id="analytics-users-total">0</strong><em>созданных прокси</em></div></div>
+                <div class="analytics-stat tone-green"><span class="analytics-glyph"><svg aria-hidden="true"><use href="#icon-check-circle"></use></svg></span><div><small>Активны</small><strong id="analytics-users-enabled">0</strong><em>могут подключаться</em></div></div>
+                <div class="analytics-stat tone-red"><span class="analytics-glyph"><svg aria-hidden="true"><use href="#icon-pause-circle"></use></svg></span><div><small>Отключены</small><strong id="analytics-users-disabled">0</strong><em>доступ остановлен</em></div></div>
+                <div class="analytics-stat tone-amber"><span class="analytics-glyph"><svg aria-hidden="true"><use href="#icon-external"></use></svg></span><div><small>Внешние</small><strong id="analytics-users-unassigned">0</strong><em>добавлены от провайдеров</em></div></div>
               </div>
             </article>
           </div>
@@ -181,12 +206,12 @@
           <article class="analytics-panel system-analytics">
             <div class="analytics-panel-head"><h3>Ресурсы агентов</h3><span id="analytics-telemetry-nodes" class="analytics-panel-total">0 агентов</span></div>
             <div class="analytics-stat-grid system-stat-grid">
-              <div class="analytics-stat tone-green"><span class="analytics-glyph">H</span><div><small>Heap used</small><strong id="analytics-heap">0 Б</strong><em>память Go-процессов</em></div></div>
-              <div class="analytics-stat tone-cyan"><span class="analytics-glyph">R</span><div><small>Runtime memory</small><strong id="analytics-runtime-memory">0 Б</strong><em>зарезервировано runtime</em></div></div>
-              <div class="analytics-stat tone-violet"><span class="analytics-glyph">RAM</span><div><small>Память серверов</small><strong id="analytics-host-memory">0 Б</strong><em id="analytics-host-memory-total">из 0 Б</em></div></div>
-              <div class="analytics-stat tone-blue"><span class="analytics-glyph">G</span><div><small>Goroutines</small><strong id="analytics-goroutines">0</strong><em>во всех агентах</em></div></div>
-              <div class="analytics-stat tone-amber"><span class="analytics-glyph">L</span><div><small>Средняя нагрузка</small><strong id="analytics-load">0.00</strong><em>load average · 1 мин</em></div></div>
-              <div class="analytics-stat tone-green"><span class="analytics-glyph">U</span><div><small>Средний uptime</small><strong id="analytics-uptime">—</strong><em>без перезапуска агента</em></div></div>
+              <div class="analytics-stat tone-green"><span class="analytics-glyph"><svg aria-hidden="true"><use href="#icon-database"></use></svg></span><div><small>Heap used</small><strong id="analytics-heap">0 Б</strong><em>память Go-процессов</em></div></div>
+              <div class="analytics-stat tone-cyan"><span class="analytics-glyph"><svg aria-hidden="true"><use href="#icon-cpu"></use></svg></span><div><small>Runtime memory</small><strong id="analytics-runtime-memory">0 Б</strong><em>зарезервировано runtime</em></div></div>
+              <div class="analytics-stat tone-violet"><span class="analytics-glyph"><svg aria-hidden="true"><use href="#icon-memory"></use></svg></span><div><small>Память серверов</small><strong id="analytics-host-memory">0 Б</strong><em id="analytics-host-memory-total">из 0 Б</em></div></div>
+              <div class="analytics-stat tone-blue"><span class="analytics-glyph"><svg aria-hidden="true"><use href="#icon-workflow"></use></svg></span><div><small>Goroutines</small><strong id="analytics-goroutines">0</strong><em>во всех агентах</em></div></div>
+              <div class="analytics-stat tone-amber"><span class="analytics-glyph"><svg aria-hidden="true"><use href="#icon-gauge"></use></svg></span><div><small>Средняя нагрузка</small><strong id="analytics-load">0.00</strong><em>load average · 1 мин</em></div></div>
+              <div class="analytics-stat tone-green"><span class="analytics-glyph"><svg aria-hidden="true"><use href="#icon-uptime"></use></svg></span><div><small>Средний uptime</small><strong id="analytics-uptime">—</strong><em>без перезапуска агента</em></div></div>
             </div>
           </article>
         </section>
@@ -244,7 +269,7 @@
                 <label>Chat ID<input name="chatId" autocomplete="off" placeholder="123456789 или @channel"><span class="field-hint">Личный чат, группа или канал.</span></label>
                 <label>HTTP(S)-прокси<input name="proxyUrl" autocomplete="off" placeholder="http://user:pass@host:3128"><span class="field-hint">Можно оставить пустым для прямого подключения.</span></label>
               </div>
-              <div class="telegram-connection"><span class="telegram-mark">TG</span><div><b id="telegram-bot-name">Бот ещё не проверен</b><small id="telegram-connection-copy">Сохраните настройки и отправьте тестовое сообщение.</small></div></div>
+              <div class="telegram-connection"><span class="telegram-mark"><svg aria-hidden="true"><use href="#icon-telegram"></use></svg></span><div><b id="telegram-bot-name">Бот ещё не проверен</b><small id="telegram-connection-copy">Сохраните настройки и отправьте тестовое сообщение.</small></div></div>
               <div class="settings-actions split-actions"><button id="telegram-disconnect" class="settings-danger-button hidden" type="button">Удалить подключение</button><span></span><button id="telegram-test" class="button secondary" type="button">Отправить тест</button><button class="button primary" type="submit">Сохранить Telegram</button></div>
             </form>
           </article>
@@ -322,6 +347,13 @@
     <div id="proxy-managed-config" class="proxy-detail-config"><label>Протокол<select id="proxy-edit-protocol"><option value="http">HTTP</option><option value="socks5">SOCKS5</option></select></label><label>Нода<select id="proxy-edit-node"></select></label><button id="proxy-save-settings" class="button secondary" type="button">Сохранить настройки</button></div>
     <div id="proxy-external-config" class="proxy-detail-config external-config hidden"><label>Провайдер<input id="proxy-edit-provider" placeholder="Не указан"></label><label>Новая строка подключения<input id="proxy-edit-external-url" autocomplete="off" placeholder="Оставьте пустым, чтобы не менять"></label><button id="proxy-save-external" class="button secondary" type="button">Сохранить</button></div>
     <div class="proxy-detail-actions"><button id="proxy-toggle" class="button secondary" type="button">Отключить прокси</button><span class="proxy-external-actions hidden" id="proxy-external-actions"><button id="proxy-check-external" class="button secondary" type="button">Проверить</button><button id="proxy-reveal-external" class="button primary" type="button">Показать подключение</button></span><button id="proxy-reset-password" class="button primary" type="button">Сменить пароль</button></div>
+    <div class="proxy-danger-zone"><div><b>Удалить прокси</b><small>Полностью удалит доступ и сохранённые данные.</small></div><button id="proxy-delete" class="button danger" type="button">Удалить</button></div>
+  </dialog>
+
+  <dialog id="delete-proxy-dialog" class="modal confirm-modal">
+    <div class="modal-head"><div><p class="eyebrow danger-eyebrow">НЕОБРАТИМОЕ ДЕЙСТВИЕ</p><h3>Удалить прокси?</h3></div><button class="icon-button" type="button" data-close-dialog aria-label="Закрыть">×</button></div>
+    <p class="confirm-copy"><b id="delete-proxy-name">Прокси</b> будет удалён из ProxyFleet. Это действие нельзя отменить, доступ и сохранённые реквизиты восстановить не получится.</p>
+    <div class="modal-actions"><button class="button secondary" type="button" data-close-dialog>Отмена</button><button id="confirm-delete-proxy" class="button danger-filled" type="button">Удалить прокси</button></div>
   </dialog>
 
   <dialog id="secret-dialog" class="modal secret-modal">
@@ -348,7 +380,7 @@
           <div class="recap-period" data-recap-section="period"><small id="recap-month">ОКТЯБРЬ 2026</small><div><div><strong id="recap-online">0</strong><span>НОД ОНЛАЙН</span></div><div><strong id="recap-month-traffic">0 Б</strong><span>ЗА МЕСЯЦ</span></div></div></div>
           <div class="recap-infrastructure" data-recap-section="system"><small>ИНФРАСТРУКТУРА</small><div><div><strong id="recap-agents">0</strong><span>АГЕНТОВ</span></div><div><strong id="recap-connections">0</strong><span>СОЕДИНЕНИЙ</span></div><div><strong id="recap-memory">0 Б</strong><span>RAM</span></div></div></div>
           <div class="recap-divider"></div>
-          <div class="recap-footer"><span id="recap-note">Private infrastructure</span><b id="recap-version">v0.2.0</b></div>
+          <div class="recap-footer"><span id="recap-note">Private infrastructure</span><b id="recap-version">v0.3.0</b></div>
         </article>
       </div>
       <div class="recap-controls">

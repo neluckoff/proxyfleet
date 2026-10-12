@@ -139,6 +139,44 @@ func TestOneNodeAcceptsMultipleProxies(t *testing.T) {
 	}
 }
 
+func TestDeleteProxyRemovesAccessAndBumpsNodeConfig(t *testing.T) {
+	s := testServer(t)
+	nodeResponse := httptest.NewRecorder()
+	s.createNode(nodeResponse, httptest.NewRequest(http.MethodPost, "/api/nodes", bytes.NewBufferString(`{"name":"Delete test","advertisedHost":"delete.example.test"}`)))
+	var nodeResult struct {
+		Node struct {
+			ID string `json:"id"`
+		} `json:"node"`
+	}
+	_ = json.Unmarshal(nodeResponse.Body.Bytes(), &nodeResult)
+
+	createResponse := httptest.NewRecorder()
+	createBody, _ := json.Marshal(map[string]any{"username": "delete_me", "protocol": "http", "nodeId": nodeResult.Node.ID})
+	s.createUser(createResponse, httptest.NewRequest(http.MethodPost, "/api/proxies", bytes.NewReader(createBody)))
+	var created struct {
+		Proxy struct {
+			ID string `json:"id"`
+		} `json:"proxy"`
+	}
+	_ = json.Unmarshal(createResponse.Body.Bytes(), &created)
+	before := s.store.snapshot().Nodes[0].ConfigVersion
+
+	request := httptest.NewRequest(http.MethodDelete, "/api/proxies/"+created.Proxy.ID, nil)
+	request.SetPathValue("id", created.Proxy.ID)
+	response := httptest.NewRecorder()
+	s.deleteUser(response, request)
+	if response.Code != http.StatusOK {
+		t.Fatalf("delete proxy returned %d: %s", response.Code, response.Body.String())
+	}
+	state := s.store.snapshot()
+	if len(state.Users) != 0 {
+		t.Fatalf("deleted proxy is still stored: %#v", state.Users)
+	}
+	if state.Nodes[0].ConfigVersion <= before {
+		t.Fatal("node config version was not bumped after proxy deletion")
+	}
+}
+
 func TestDisabledProxyKeepsItsEndpointDetails(t *testing.T) {
 	state := model.State{
 		Nodes: []*model.Node{{ID: "node-1", Name: "Warsaw", AdvertisedHost: "proxy.example.test", HTTPPort: 3128}},
