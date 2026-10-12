@@ -1,12 +1,6 @@
-<p align="center">
-  <img src="https://raw.githubusercontent.com/neluckoff/proxyfleet/master/internal/control/web/logo.png" width="112" alt="ProxyFleet logo">
-</p>
+# ProxyFleet
 
-<h1 align="center">ProxyFleet</h1>
-
-<p align="center">
-  Self-hosted control plane for distributed HTTP and SOCKS5 proxy infrastructure.
-</p>
+**Self-hosted control plane for distributed HTTP and SOCKS5 proxy infrastructure.**
 
 ProxyFleet gives you one clean web interface for deploying proxy nodes on multiple VPS instances, creating independent authenticated proxies, and monitoring the health of the entire fleet.
 
