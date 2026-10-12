@@ -11,6 +11,6 @@ COPY --from=builder /out/proxyfleet /usr/local/bin/proxyfleet
 RUN mkdir -p /data && chown proxyfleet:proxyfleet /data
 USER proxyfleet
 VOLUME ["/data"]
-EXPOSE 8080 3128 1080
+EXPOSE 8080
 ENTRYPOINT ["/usr/local/bin/proxyfleet"]
 CMD ["server"]
