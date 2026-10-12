@@ -1,0 +1,10 @@
+.git
+.github
+.idea
+.vscode
+*.log
+*.tar.gz
+state.json
+agent.json
+proxyfleet
+README.md

@@ -1,0 +1,9 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Вопрос или помощь
+    url: https://github.com/neluckoff/proxyfleet/discussions
+    about: Используйте Discussions для вопросов по установке и эксплуатации.
+  - name: Сообщить об уязвимости
+    url: https://github.com/neluckoff/proxyfleet/security/advisories/new
+    about: Не публикуйте данные об уязвимостях в открытых issue.
+

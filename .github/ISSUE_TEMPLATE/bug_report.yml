@@ -1,0 +1,69 @@
+name: Сообщить об ошибке
+description: Воспроизводимая проблема в ProxyFleet
+title: "[Bug]: "
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: Спасибо за сообщение. Не прикладывайте пароли, токены, proxy-ссылки и содержимое state-файла.
+
+  - type: input
+    id: version
+    attributes:
+      label: Версия
+      description: Тег образа или commit SHA.
+      placeholder: v0.1.0 или 4c76d28
+    validations:
+      required: true
+
+  - type: dropdown
+    id: component
+    attributes:
+      label: Компонент
+      options:
+        - Control plane
+        - Agent
+        - HTTP proxy
+        - SOCKS5 proxy
+        - Web UI
+        - Docker / установка
+        - Документация
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Описание
+      description: Что произошло и чего вы ожидали?
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Как воспроизвести
+      placeholder: |
+        1. Открыть …
+        2. Нажать …
+        3. Увидеть …
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Логи
+      description: Удалите токены, логины, IP-адреса и другие чувствительные данные.
+      render: shell
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Проверки
+      options:
+        - label: Я проверил существующие issue и не нашёл дубль.
+          required: true
+        - label: Я удалил из примеров секреты и персональные данные.
+          required: true
+

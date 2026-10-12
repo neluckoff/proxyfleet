@@ -3,6 +3,8 @@ name: proxyfleet-node
 services:
   node:
     container_name: proxyfleet-node
+    build:
+      context: .
     image: ${PROXYFLEET_IMAGE:-neluckoff/proxyfleet:latest}
     restart: unless-stopped
     command: ["agent"]

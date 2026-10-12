@@ -1,0 +1,41 @@
+name: Предложить функцию
+description: Идея для развития ProxyFleet
+title: "[Feature]: "
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Какую проблему решает предложение?
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: Предлагаемое решение
+      description: Опишите желаемый пользовательский сценарий и результат.
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Альтернативы
+      description: Какие варианты или обходные пути вы уже рассматривали?
+
+  - type: dropdown
+    id: scope
+    attributes:
+      label: Область
+      options:
+        - Control plane
+        - Agent
+        - Proxy-протоколы
+        - Web UI
+        - Наблюдаемость
+        - Установка и обновление
+        - Документация
+    validations:
+      required: true
+
