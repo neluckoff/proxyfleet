@@ -95,7 +95,7 @@
 
   <div id="app" class="app-shell hidden">
     <div class="utility-dock" aria-label="Быстрые действия">
-      <span id="app-version" class="utility-version" title="Версия ProxyFleet"><span class="version-signal" aria-hidden="true"><i></i><i></i><i></i><i></i></span><b>v0.3.0</b></span>
+      <span id="app-version" class="utility-version" title="Версия ProxyFleet"><span class="version-signal" aria-hidden="true"><i></i><i></i><i></i><i></i></span><b>v0.4.0</b></span>
       <a class="utility-github" href="https://github.com/neluckoff/proxyfleet" target="_blank" rel="noreferrer" aria-label="ProxyFleet на GitHub">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2a10 10 0 0 0-3.16 19.49c.5.09.68-.22.68-.48v-1.88c-2.78.6-3.37-1.18-3.37-1.18-.45-1.16-1.11-1.47-1.11-1.47-.91-.62.07-.61.07-.61 1 .07 1.53 1.03 1.53 1.03.9 1.53 2.35 1.09 2.92.83.09-.65.35-1.09.64-1.34-2.22-.25-4.56-1.11-4.56-4.94 0-1.09.39-1.98 1.03-2.68-.1-.25-.45-1.27.1-2.64 0 0 .84-.27 2.75 1.02A9.58 9.58 0 0 1 12 6.82a9.6 9.6 0 0 1 2.5.34c1.91-1.29 2.75-1.02 2.75-1.02.55 1.37.2 2.39.1 2.64.64.7 1.03 1.59 1.03 2.68 0 3.84-2.34 4.69-4.57 4.94.36.31.68.92.68 1.86v2.75c0 .27.18.58.69.48A10 10 0 0 0 12 2Z"/></svg>
         <span class="github-star" aria-hidden="true">☆</span><b id="github-stars">GitHub</b>
@@ -218,12 +218,12 @@
       </section>
 
       <section id="view-nodes" class="view">
-        <div class="page-intro"><div><h1>Proxy-ноды</h1><p>Серверы, которые принимают HTTP и SOCKS5 трафик.</p></div><button class="button primary" data-action="new-node"><span class="button-plus" aria-hidden="true"></span><span>Новая нода</span></button></div>
+        <div class="page-intro"><div><h1>Proxy-ноды</h1><p>Серверы, которые принимают HTTP, SOCKS5 и MTProto трафик.</p></div><button class="button primary" data-action="new-node"><span class="button-plus" aria-hidden="true"></span><span>Новая нода</span></button></div>
         <div id="nodes-grid" class="nodes-grid"></div>
       </section>
 
       <section id="view-proxies" class="view">
-        <div class="page-intro"><div><h1>Прокси</h1><p>Готовые HTTP и SOCKS5 подключения с отдельными доступами и управлением.</p></div><button class="button primary" data-action="new-proxy"><span class="button-plus" aria-hidden="true"></span><span>Создать прокси</span></button></div>
+        <div class="page-intro"><div><h1>Прокси</h1><p>Готовые HTTP, SOCKS5 и MTProto подключения с отдельными доступами и управлением.</p></div><button class="button primary" data-action="new-proxy"><span class="button-plus" aria-hidden="true"></span><span>Создать прокси</span></button></div>
         <article class="panel table-panel proxy-table-panel">
           <div class="table-scroll"><table class="proxy-table"><thead><tr><th>Прокси</th><th>Протокол</th><th>Адрес</th><th>Логин</th><th>Источник</th><th>Состояние</th><th>Создан</th><th></th></tr></thead><tbody id="proxies-table"></tbody></table></div>
         </article>
@@ -308,6 +308,7 @@
         <label>Публичный адрес<input name="advertisedHost" placeholder="proxy-nl.example.com"></label>
         <label>HTTP порт<input name="httpPort" type="number" min="1024" max="65535" value="3128" required></label>
         <label>SOCKS5 порт<input name="socksPort" type="number" min="1024" max="65535" value="1080" required></label>
+        <label class="span-2">MTProto порт<input name="mtProtoPort" type="number" min="1024" max="65535" value="8443" required><span class="field-hint">Откройте этот TCP-порт в firewall ноды.</span></label>
       </div>
       <p class="form-error" data-form-error></p>
       <div class="modal-actions"><button class="button secondary" type="button" data-close-dialog>Отмена</button><button id="node-submit-button" class="button primary" type="submit">Создать ноду</button></div>
@@ -321,11 +322,14 @@
       <div class="form-grid">
         <fieldset class="span-2"><legend>Источник</legend><div class="protocol-picker source-picker"><label><input type="radio" name="source" value="managed" checked><span><b>Своя нода</b><small>ProxyFleet создаст и будет полностью управлять доступом.</small></span></label><label><input type="radio" name="source" value="external"><span><b>Внешний прокси</b><small>Добавьте приобретённое подключение для хранения и мониторинга.</small></span></label></div></fieldset>
         <div id="managed-proxy-fields" class="nested-form-grid span-2">
-          <fieldset class="span-2"><legend>Протокол</legend><div class="protocol-picker"><label><input type="radio" name="protocol" value="http" checked><span><b>HTTP</b><small>Совместим с браузерами и API-клиентами</small></span></label><label><input type="radio" name="protocol" value="socks5"><span><b>SOCKS5</b><small>Универсальный TCP-прокси</small></span></label></div></fieldset>
+          <fieldset class="span-2"><legend>Протокол</legend><div class="protocol-picker"><label><input type="radio" name="protocol" value="http" checked><span><b>HTTP</b><small>Совместим с браузерами и API-клиентами</small></span></label><label><input type="radio" name="protocol" value="socks5"><span><b>SOCKS5</b><small>Универсальный TCP-прокси</small></span></label><label><input type="radio" name="protocol" value="mtproto"><span><b>MTProto</b><small>Доступ только для Telegram с отдельным secret</small></span></label></div></fieldset>
           <label class="span-2">Нода<select id="proxy-node-select" name="nodeId" required></select></label>
           <label>Название <span class="label-note">необязательно</span><input name="name" placeholder="Telegram bot"></label>
-          <label>Логин<input name="username" minlength="3" maxlength="64" pattern="[A-Za-z0-9._-]+" placeholder="telegram_bot" required></label>
-          <label class="span-2">Пароль <span class="label-note">оставьте пустым для генерации</span><span class="password-composer"><input name="password" type="text" minlength="12" autocomplete="new-password" placeholder="Будет сгенерирован автоматически"><button id="generate-proxy-password" type="button">Сгенерировать</button></span></label>
+          <div id="proxy-credential-fields" class="nested-form-grid span-2">
+            <label>Логин<input name="username" minlength="3" maxlength="64" pattern="[A-Za-z0-9._-]+" placeholder="telegram_bot" required></label>
+            <label>Пароль <span class="label-note">оставьте пустым для генерации</span><span class="password-composer"><input name="password" type="text" minlength="12" autocomplete="new-password" placeholder="Будет сгенерирован автоматически"><button id="generate-proxy-password" type="button">Сгенерировать</button></span></label>
+          </div>
+          <div id="mtproto-create-note" class="span-2 info-note hidden">Secret будет создан автоматически и показан один раз вместе с готовой ссылкой Telegram.</div>
         </div>
         <div id="external-proxy-fields" class="nested-form-grid span-2 hidden">
           <label>Название <span class="label-note">необязательно</span><input name="externalName" placeholder="Рабочий прокси"></label>
@@ -343,11 +347,11 @@
     <div class="modal-head"><div><p id="proxy-detail-protocol" class="eyebrow">HTTP ПРОКСИ</p><h3 id="proxy-detail-name">Прокси</h3></div><button class="icon-button" type="button" data-close-dialog aria-label="Закрыть">×</button></div>
     <div class="proxy-detail-status-row"><span id="proxy-detail-status" class="status-pill">Ожидает</span><span id="proxy-detail-status-copy" class="muted">Проверяем состояние ноды</span></div>
     <div class="proxy-detail-url"><small>СТРОКА ПОДКЛЮЧЕНИЯ</small><code id="proxy-detail-url">—</code><p id="proxy-detail-url-copy">Пароль скрыт. Полная ссылка повторно выдаётся при смене пароля.</p></div>
-    <dl class="proxy-detail-list"><div><dt id="proxy-detail-source-label">Нода</dt><dd id="proxy-detail-node">—</dd></div><div><dt>Логин</dt><dd id="proxy-detail-login">—</dd></div><div><dt>Адрес</dt><dd id="proxy-detail-endpoint">—</dd></div><div><dt id="proxy-detail-time-label">Создан</dt><dd id="proxy-detail-created">—</dd></div></dl>
-    <div id="proxy-managed-config" class="proxy-detail-config"><label>Протокол<select id="proxy-edit-protocol"><option value="http">HTTP</option><option value="socks5">SOCKS5</option></select></label><label>Нода<select id="proxy-edit-node"></select></label><button id="proxy-save-settings" class="button secondary" type="button">Сохранить настройки</button></div>
+    <dl class="proxy-detail-list"><div><dt id="proxy-detail-source-label">Нода</dt><dd id="proxy-detail-node">—</dd></div><div><dt id="proxy-detail-auth-label">Логин</dt><dd id="proxy-detail-login">—</dd></div><div><dt>Адрес</dt><dd id="proxy-detail-endpoint">—</dd></div><div><dt id="proxy-detail-time-label">Создан</dt><dd id="proxy-detail-created">—</dd></div></dl>
+    <div id="proxy-managed-config" class="proxy-detail-config"><label>Протокол<select id="proxy-edit-protocol"><option value="http">HTTP</option><option value="socks5">SOCKS5</option><option value="mtproto">MTProto</option></select></label><label>Нода<select id="proxy-edit-node"></select></label><button id="proxy-save-settings" class="button secondary" type="button">Сохранить настройки</button></div>
     <div id="proxy-external-config" class="proxy-detail-config external-config hidden"><label>Провайдер<input id="proxy-edit-provider" placeholder="Не указан"></label><label>Новая строка подключения<input id="proxy-edit-external-url" autocomplete="off" placeholder="Оставьте пустым, чтобы не менять"></label><button id="proxy-save-external" class="button secondary" type="button">Сохранить</button></div>
     <div class="proxy-detail-actions"><button id="proxy-toggle" class="button secondary" type="button">Отключить прокси</button><span class="proxy-external-actions hidden" id="proxy-external-actions"><button id="proxy-check-external" class="button secondary" type="button">Проверить</button><button id="proxy-reveal-external" class="button primary" type="button">Показать подключение</button></span><button id="proxy-reset-password" class="button primary" type="button">Сменить пароль</button></div>
-    <div class="proxy-danger-zone"><div><b>Удалить прокси</b><small>Полностью удалит доступ и сохранённые данные.</small></div><button id="proxy-delete" class="button danger" type="button">Удалить</button></div>
+    <div class="proxy-danger-zone"><div><b>Удалить прокси</b><small>Полностью удалит доступ и сохранённые данные.</small></div><button id="proxy-delete" class="button danger-filled" type="button">Удалить</button></div>
   </dialog>
 
   <dialog id="delete-proxy-dialog" class="modal confirm-modal">
@@ -380,7 +384,7 @@
           <div class="recap-period" data-recap-section="period"><small id="recap-month">ОКТЯБРЬ 2026</small><div><div><strong id="recap-online">0</strong><span>НОД ОНЛАЙН</span></div><div><strong id="recap-month-traffic">0 Б</strong><span>ЗА МЕСЯЦ</span></div></div></div>
           <div class="recap-infrastructure" data-recap-section="system"><small>ИНФРАСТРУКТУРА</small><div><div><strong id="recap-agents">0</strong><span>АГЕНТОВ</span></div><div><strong id="recap-connections">0</strong><span>СОЕДИНЕНИЙ</span></div><div><strong id="recap-memory">0 Б</strong><span>RAM</span></div></div></div>
           <div class="recap-divider"></div>
-          <div class="recap-footer"><span id="recap-note">Private infrastructure</span><b id="recap-version">v0.3.0</b></div>
+          <div class="recap-footer"><span id="recap-note">Private infrastructure</span><b id="recap-version">v0.4.0</b></div>
         </article>
       </div>
       <div class="recap-controls">

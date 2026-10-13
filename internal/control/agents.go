@@ -47,10 +47,14 @@ func (s *server) agentConfig(w http.ResponseWriter, _ *http.Request, node *model
 	users := make([]model.AgentUser, 0)
 	for _, user := range state.Users {
 		if slices.Contains(user.NodeIDs, node.ID) {
-			users = append(users, model.AgentUser{ID: user.ID, Username: user.Username, PasswordHash: user.PasswordHash, Protocol: user.Protocol, Enabled: user.Enabled})
+			agentUser := model.AgentUser{ID: user.ID, Username: user.Username, PasswordHash: user.PasswordHash, Protocol: user.Protocol, Enabled: user.Enabled}
+			if user.Protocol == "mtproto" {
+				agentUser.MTProtoSecret, _ = mtProtoSecret(&state, user)
+			}
+			users = append(users, agentUser)
 		}
 	}
-	writeJSON(w, http.StatusOK, model.AgentConfig{Version: node.ConfigVersion, NodeName: node.Name, HTTPPort: node.HTTPPort, SOCKSPort: node.SOCKSPort, AllowPrivateTargets: node.AllowPrivateTargets, Users: users})
+	writeJSON(w, http.StatusOK, model.AgentConfig{Version: node.ConfigVersion, NodeName: node.Name, HTTPPort: node.HTTPPort, SOCKSPort: node.SOCKSPort, MTProtoPort: node.MTProtoPort, AllowPrivateTargets: node.AllowPrivateTargets, Users: users})
 }
 
 func (s *server) agentHeartbeat(w http.ResponseWriter, r *http.Request, authenticated *model.Node) {

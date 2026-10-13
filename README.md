@@ -5,7 +5,7 @@
 <h1 align="center">ProxyFleet</h1>
 
 <p align="center">
-  A self-hosted control plane for deploying and managing distributed HTTP and SOCKS5 proxy nodes.
+  A self-hosted control plane for deploying and managing distributed HTTP, SOCKS5, and MTProto proxy nodes.
 </p>
 
 <p align="center">
@@ -36,6 +36,7 @@ There is no required `.env` file. The owner account, password, public URL, sessi
 - multiple independent proxies on a single node;
 - authenticated HTTP proxy with `CONNECT` support;
 - authenticated SOCKS5 proxy;
+- MTProto proxy for Telegram with an independent encrypted secret per access;
 - one protocol per managed proxy, with generated connection URLs;
 - create, disable, move, and edit proxies without restarting containers;
 - encrypted storage and availability checks for third-party HTTP/SOCKS5 proxies;
@@ -64,8 +65,9 @@ ProxyFleet control plane
    │ outbound HTTPS connections from agents
    ├───────────────┬───────────────┐
    ▼               ▼               ▼
-Agent / VPS 1   Agent / VPS 2   Agent / VPS N
-HTTP / SOCKS5   HTTP / SOCKS5   HTTP / SOCKS5
+Agent / VPS 1      Agent / VPS 2      Agent / VPS N
+HTTP / SOCKS5 /    HTTP / SOCKS5 /    HTTP / SOCKS5 /
+MTProto            MTProto            MTProto
 ```
 
 The control plane stores desired state. Agents initiate the connection to the panel, receive their configuration, and send heartbeat data back. Proxy nodes do not need a publicly exposed management port.
@@ -169,12 +171,12 @@ The generated command uses the same `neluckoff/proxyfleet:latest` image in agent
 For a managed proxy, choose:
 
 - a display name;
-- HTTP or SOCKS5;
+- HTTP, SOCKS5, or MTProto;
 - the node that should serve it;
-- a username;
-- a password, or let ProxyFleet generate one.
+- for HTTP/SOCKS5: a username and password, or let ProxyFleet generate the password;
+- for MTProto: no credentials are needed — ProxyFleet generates an encrypted secret and a ready-to-use Telegram link.
 
-The complete connection URL is shown only after creation or password rotation. Save it immediately: the control plane stores only the password hash for managed proxies.
+The complete connection URL is shown only after creation or credential rotation. Save it immediately: HTTP/SOCKS5 passwords are stored only as hashes, while MTProto secrets are encrypted at rest so they can be delivered securely to the assigned node.
 
 ### Third-party proxies
 
@@ -194,6 +196,7 @@ Expose proxy ports only to trusted clients:
 ```bash
 sudo ufw allow from <CLIENT_IP> to any port 3128 proto tcp
 sudo ufw allow from <CLIENT_IP> to any port 1080 proto tcp
+sudo ufw allow from <CLIENT_IP> to any port 8443 proto tcp
 ```
 
 Do not expose proxy ports to the whole internet, even when authentication is enabled.
@@ -227,7 +230,20 @@ docker image prune -f
 
 This recreates the container with the newest `neluckoff/proxyfleet:latest` image while preserving `proxyfleet-control-data`.
 
-For reproducible production deployments, set `PROXYFLEET_IMAGE` to a `sha-<commit>` tag listed on [Docker Hub Tags](https://hub.docker.com/r/neluckoff/proxyfleet/tags).
+For reproducible production deployments, pin `PROXYFLEET_IMAGE` to an exact release such as `neluckoff/proxyfleet:0.4.0` or to an immutable image digest from [Docker Hub Tags](https://hub.docker.com/r/neluckoff/proxyfleet/tags).
+
+Update a standalone node installed with the generated `docker run` command:
+
+```bash
+docker pull neluckoff/proxyfleet:0.4.0
+docker rm -f proxyfleet-node
+docker run -d --name proxyfleet-node --restart unless-stopped --network host \
+  -v proxyfleet_node_data:/data \
+  -e CONTROL_URL=https://proxy.example.com \
+  neluckoff/proxyfleet:0.4.0 agent
+```
+
+Replace `CONTROL_URL` with your panel URL. The existing `proxyfleet_node_data` volume contains the enrolled agent credential, so no new enrollment token is needed. MTProto support requires both the control plane and node agents to run version `0.4.0` or newer.
 
 ### GitHub source installation
 
@@ -277,6 +293,9 @@ docker compose up -d --no-build
 | `HEALTHCHECK_URL` | control plane | `http://127.0.0.1:8080/health` | Override for the built-in control-plane health check |
 | `HTTP_PROXY_PORT` | node Compose | `3128` | Public HTTP proxy port |
 | `SOCKS_PROXY_PORT` | node Compose | `1080` | Public SOCKS5 proxy port |
+| `MTPROTO_PROXY_PORT` | node Compose | `8443` | Public MTProto proxy port |
+| `TELEMT_BINARY` | agent | `/usr/local/bin/telemt` | Telemt executable used for MTProto |
+| `MTPROTO_DATA_DIR` | agent | `/data/mtproto` | Generated Telemt configuration directory |
 
 ### Container health
 
@@ -346,11 +365,15 @@ Required GitHub Actions secrets:
 Version tags publish semantic aliases:
 
 ```bash
-git tag v0.3.0
-git push origin v0.3.0
+git tag v0.4.0
+git push origin v0.4.0
 ```
 
-This produces `:0.3.0`, `:0.3`, `:0`, and `:latest`. Manual workflow runs publish `:latest` and `:sha-<commit>`.
+This produces `:0.4.0`, `:0.4`, and `:latest`. Manual workflow runs update `:latest` only.
+
+## 🙏 Third-party software
+
+MTProto service on proxy nodes is provided by [Telemt](https://github.com/telemt/telemt), pinned to version `3.5.14` in the Docker build. The published image contains Telemt's license at `/usr/share/licenses/telemt/LICENSE`. ProxyFleet is not affiliated with or endorsed by Telegram or the Telemt project.
 
 ## 🤝 Contributing
 

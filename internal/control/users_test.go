@@ -61,6 +61,112 @@ func TestCreateProxyReturnsConnectionURL(t *testing.T) {
 	}
 }
 
+func TestCreateMTProtoProxyEncryptsSecretAndFeedsAgent(t *testing.T) {
+	s := testServer(t)
+	configureTestOwner(t, s)
+	nodeResponse := httptest.NewRecorder()
+	s.createNode(nodeResponse, httptest.NewRequest(http.MethodPost, "/api/nodes", bytes.NewBufferString(`{
+		"name":"Telegram Edge","advertisedHost":"telegram.example.test","mtProtoPort":8443
+	}`)))
+	var nodeResult struct {
+		Node struct {
+			ID string `json:"id"`
+		} `json:"node"`
+	}
+	if err := json.Unmarshal(nodeResponse.Body.Bytes(), &nodeResult); err != nil {
+		t.Fatal(err)
+	}
+
+	body, _ := json.Marshal(map[string]any{"name": "Family Telegram", "protocol": "mtproto", "nodeId": nodeResult.Node.ID})
+	response := httptest.NewRecorder()
+	s.createUser(response, httptest.NewRequest(http.MethodPost, "/api/proxies", bytes.NewReader(body)))
+	if response.Code != http.StatusCreated {
+		t.Fatalf("create MTProto proxy returned %d: %s", response.Code, response.Body.String())
+	}
+	var result struct {
+		Proxy struct {
+			ID        string `json:"id"`
+			Protocol  string `json:"protocol"`
+			Endpoint  string `json:"endpoint"`
+			MaskedURL string `json:"maskedUrl"`
+		} `json:"proxy"`
+		Secret   string `json:"secret"`
+		ProxyURL string `json:"proxyUrl"`
+		TGURL    string `json:"tgUrl"`
+	}
+	if err := json.Unmarshal(response.Body.Bytes(), &result); err != nil {
+		t.Fatal(err)
+	}
+	if result.Proxy.Protocol != "mtproto" || result.Proxy.Endpoint != "telegram.example.test:8443" {
+		t.Fatalf("unexpected public MTProto data: %#v", result.Proxy)
+	}
+	if len(result.Secret) != 34 || !strings.HasPrefix(result.Secret, "dd") {
+		t.Fatalf("unexpected client secret: %q", result.Secret)
+	}
+	if !strings.Contains(result.ProxyURL, "https://t.me/proxy?") || !strings.Contains(result.ProxyURL, result.Secret) {
+		t.Fatalf("unexpected t.me URL: %q", result.ProxyURL)
+	}
+	if !strings.HasPrefix(result.TGURL, "tg://proxy?") || !strings.Contains(result.TGURL, result.Secret) {
+		t.Fatalf("unexpected tg URL: %q", result.TGURL)
+	}
+	if strings.Contains(result.Proxy.MaskedURL, result.Secret) {
+		t.Fatal("public proxy data leaked the MTProto secret")
+	}
+	persisted, err := os.ReadFile(s.store.path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if bytes.Contains(persisted, []byte(result.Secret)) || bytes.Contains(persisted, []byte(result.Secret[2:])) {
+		t.Fatal("MTProto secret was persisted in plain text")
+	}
+
+	state := s.store.snapshot()
+	agentResponse := httptest.NewRecorder()
+	s.agentConfig(agentResponse, httptest.NewRequest(http.MethodGet, "/api/agent/config", nil), state.Nodes[0])
+	var config model.AgentConfig
+	if err := json.Unmarshal(agentResponse.Body.Bytes(), &config); err != nil {
+		t.Fatal(err)
+	}
+	if config.MTProtoPort != 8443 || len(config.Users) != 1 || config.Users[0].MTProtoSecret != result.Secret[2:] {
+		t.Fatalf("agent config is missing MTProto access: %#v", config)
+	}
+
+	rotateRequest := httptest.NewRequest(http.MethodPatch, "/api/proxies/"+result.Proxy.ID, bytes.NewBufferString(`{"password":""}`))
+	rotateRequest.SetPathValue("id", result.Proxy.ID)
+	rotateResponse := httptest.NewRecorder()
+	s.updateUser(rotateResponse, rotateRequest)
+	if rotateResponse.Code != http.StatusOK {
+		t.Fatalf("rotate MTProto secret returned %d: %s", rotateResponse.Code, rotateResponse.Body.String())
+	}
+	var rotated struct {
+		Secret   string `json:"secret"`
+		ProxyURL string `json:"proxyUrl"`
+	}
+	if err := json.Unmarshal(rotateResponse.Body.Bytes(), &rotated); err != nil {
+		t.Fatal(err)
+	}
+	if rotated.Secret == result.Secret || len(rotated.Secret) != 34 || !strings.Contains(rotated.ProxyURL, rotated.Secret) {
+		t.Fatalf("MTProto secret was not rotated: %#v", rotated)
+	}
+
+	disableRequest := httptest.NewRequest(http.MethodPatch, "/api/proxies/"+result.Proxy.ID, bytes.NewBufferString(`{"enabled":false}`))
+	disableRequest.SetPathValue("id", result.Proxy.ID)
+	disableResponse := httptest.NewRecorder()
+	s.updateUser(disableResponse, disableRequest)
+	if disableResponse.Code != http.StatusOK {
+		t.Fatalf("disable MTProto proxy returned %d: %s", disableResponse.Code, disableResponse.Body.String())
+	}
+	state = s.store.snapshot()
+	agentResponse = httptest.NewRecorder()
+	s.agentConfig(agentResponse, httptest.NewRequest(http.MethodGet, "/api/agent/config", nil), state.Nodes[0])
+	if err := json.Unmarshal(agentResponse.Body.Bytes(), &config); err != nil {
+		t.Fatal(err)
+	}
+	if len(config.Users) != 1 || config.Users[0].Enabled {
+		t.Fatalf("disabled MTProto proxy remained active: %#v", config.Users)
+	}
+}
+
 func TestExternalProxyIsEncryptedAndCanBeRevealed(t *testing.T) {
 	s := testServer(t)
 	configureTestOwner(t, s)
@@ -108,6 +214,12 @@ func TestExternalProxyIsEncryptedAndCanBeRevealed(t *testing.T) {
 	}
 	if revealed["proxyUrl"] != rawURL {
 		t.Fatalf("unexpected revealed URL: %q", revealed["proxyUrl"])
+	}
+}
+
+func TestExternalProxyRejectsMTProtoURL(t *testing.T) {
+	if _, err := parseExternalProxyURL("mtproto://proxy.example.test:8443"); err == nil {
+		t.Fatal("external MTProto URL must not be accepted as an HTTP/SOCKS5 proxy")
 	}
 }
 

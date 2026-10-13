@@ -253,6 +253,7 @@ td code { padding: 6px 10px; border-radius: var(--radius-pill); background: var(
 .proxy-node-cell small { display: block; margin-top: 5px; color: var(--color-steel); font-size: 9px; }
 .protocol-chip { display: inline-flex; align-items: center; min-height: 28px; padding: 0 10px; border-radius: var(--radius-pill); background: rgba(41,151,255,.12); color: #64d2ff; font-size: 9px; font-weight: 700; letter-spacing: .04em; white-space: nowrap; }
 .protocol-chip.socks5 { background: rgba(191,90,242,.13); color: #d08cff; }
+.protocol-chip.mtproto { background: rgba(41,151,255,.14); color: #2997ff; }
 .status-pill.disabled { background: rgba(66,66,69,.72); color: var(--color-glyph-silver); }
 .status-pill.unassigned, .status-pill.unchecked { background: rgba(255,159,10,.13); color: var(--color-launch-orange); }
 .status-pill.unavailable { background: rgba(255,69,58,.14); color: var(--color-error-red); }
@@ -370,7 +371,8 @@ legend { margin-bottom: 10px; color: var(--color-graphite); font-size: 12px; fon
 .check-option { display: flex !important; grid-template-columns: none !important; align-items: center; gap: 8px !important; padding: 11px 14px; border-radius: var(--radius-pill); background: #e8e8ed; cursor: pointer; }
 .check-option input { width: auto; height: auto; accent-color: var(--color-purchase-blue); }
 .proxy-create-modal { width: min(680px, calc(100% - 32px)); }
-.protocol-picker { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.protocol-picker { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.source-picker { grid-template-columns: 1fr 1fr; }
 .protocol-picker label { position: relative; display: block; cursor: pointer; }
 .protocol-picker input { position: absolute; width: 1px; height: 1px; opacity: 0; }
 .protocol-picker span { display: block; min-height: 76px; padding: 16px; border: 1px solid #d2d2d7; border-radius: 18px; transition: border-color .16s ease, background .16s ease, box-shadow .16s ease; }
@@ -411,6 +413,7 @@ legend { margin-bottom: 10px; color: var(--color-graphite); font-size: 12px; fon
 .confirm-copy b { color: var(--color-graphite); }
 .button.danger-filled { min-height: 40px; padding: 0 18px; background: #d92d20; color: var(--color-white); font-weight: 600; }
 .button.danger-filled:hover { background: #b42318; }
+.button.danger-filled:focus-visible { outline: 3px solid rgba(217,45,32,.24); outline-offset: 3px; }
 .button.danger-filled:disabled { opacity: .6; cursor: wait; }
 .modal-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 22px; }
 .secret-box { display: block; margin: 18px 0 10px; padding: 16px; border-radius: 18px; background: var(--color-polar-white); }

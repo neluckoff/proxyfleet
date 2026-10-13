@@ -1,13 +1,14 @@
 # ProxyFleet
 
-**Self-hosted control plane for distributed HTTP and SOCKS5 proxy infrastructure.**
+**Self-hosted control plane for distributed HTTP, SOCKS5, and MTProto proxy infrastructure.**
 
 ProxyFleet gives you one clean web interface for deploying proxy nodes on multiple VPS instances, creating independent authenticated proxies, and monitoring the health of the entire fleet.
 
 ## ✨ Highlights
 
 - multiple nodes managed by one control plane;
-- multiple HTTP or SOCKS5 proxies per node;
+- multiple HTTP, SOCKS5, or Telegram MTProto proxies per node;
+- encrypted MTProto secrets with ready-to-use Telegram links;
 - outbound-only agent enrollment with one-time tokens;
 - live health, traffic, connection, memory, and uptime metrics;
 - encrypted storage and monitoring for third-party proxies;
@@ -43,7 +44,8 @@ Open **Nodes**, create a node, and run the generated Docker command on the targe
 ```text
 Control plane ── outbound HTTPS ──▶ Agent / VPS
                                       ├─ HTTP proxy
-                                      └─ SOCKS5 proxy
+                                      ├─ SOCKS5 proxy
+                                      └─ MTProto proxy
 ```
 
 ## ♻️ Update
@@ -57,7 +59,7 @@ docker image prune -f
 
 The control-plane container is recreated while the persistent volume remains intact.
 
-For reproducible deployments, pin `PROXYFLEET_IMAGE` to a `sha-<commit>` tag shown on the **Tags** page.
+For reproducible deployments, pin `PROXYFLEET_IMAGE` to an exact release such as `neluckoff/proxyfleet:0.4.0` or to an immutable image digest shown on the **Tags** page.
 
 ## 🔐 Security notes
 

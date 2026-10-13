@@ -40,11 +40,16 @@ func openStore(path string) (*store, error) {
 	if s.state.Users == nil {
 		s.state.Users = []*model.ProxyUser{}
 	}
+	for _, node := range s.state.Nodes {
+		if node.MTProtoPort == 0 {
+			node.MTProtoPort = 8443
+		}
+	}
 	for _, user := range s.state.Users {
 		if user.Source == "" {
 			user.Source = "managed"
 		}
-		if user.Protocol != "http" && user.Protocol != "socks5" {
+		if user.Protocol != "http" && user.Protocol != "socks5" && user.Protocol != "mtproto" {
 			// Legacy credentials predate the one-proxy/one-protocol model. Keep them
 			// usable through the HTTP listener instead of exposing two endpoints.
 			user.Protocol = "http"

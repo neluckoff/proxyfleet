@@ -56,30 +56,44 @@ func (s *server) createUser(w http.ResponseWriter, r *http.Request) {
 	}
 	if input.Name == "" {
 		input.Name = input.Username
+		if input.Protocol == "mtproto" {
+			input.Name = "MTProto proxy"
+		}
 	}
-	if !proxyUsernamePattern.MatchString(input.Username) {
+	if input.Protocol != "mtproto" && !proxyUsernamePattern.MatchString(input.Username) {
 		writeError(w, http.StatusBadRequest, "Логин должен содержать 3–64 латинских символа, цифры, точку, дефис или подчёркивание")
 		return
 	}
 	if !validProxyProtocol(input.Protocol) {
-		writeError(w, http.StatusBadRequest, "Выберите протокол HTTP или SOCKS5")
+		writeError(w, http.StatusBadRequest, "Выберите протокол HTTP, SOCKS5 или MTProto")
 		return
 	}
 	if input.NodeID == "" {
 		writeError(w, http.StatusBadRequest, "Выберите ноду для прокси")
 		return
 	}
-	if input.Password == "" {
-		input.Password = randomToken(18)
+	id := randomHex(8)
+	secret := ""
+	if input.Protocol == "mtproto" {
+		input.Username = "mtproto_" + id
+		secret = randomHex(16)
+		input.Password = ""
+	} else {
+		if input.Password == "" {
+			input.Password = randomToken(18)
+		}
+		if len(input.Password) < 12 {
+			writeError(w, http.StatusBadRequest, "Пароль должен содержать не менее 12 символов")
+			return
+		}
 	}
-	if len(input.Password) < 12 {
-		writeError(w, http.StatusBadRequest, "Пароль должен содержать не менее 12 символов")
-		return
+	user := &model.ProxyUser{ID: id, Name: input.Name, Username: input.Username, Protocol: input.Protocol, Source: "managed", NodeIDs: []string{input.NodeID}, Enabled: true, CreatedAt: time.Now().UTC()}
+	if input.Protocol != "mtproto" {
+		user.PasswordHash = credentialHash(input.Username, input.Password)
 	}
-	user := &model.ProxyUser{ID: randomHex(8), Name: input.Name, Username: input.Username, PasswordHash: credentialHash(input.Username, input.Password), Protocol: input.Protocol, Source: "managed", NodeIDs: []string{input.NodeID}, Enabled: true, CreatedAt: time.Now().UTC()}
 	err := s.store.update(func(state *model.State) error {
 		for _, existing := range state.Users {
-			if proxySource(existing) == "managed" && strings.EqualFold(existing.Username, user.Username) {
+			if input.Protocol != "mtproto" && proxySource(existing) == "managed" && existing.Protocol != "mtproto" && strings.EqualFold(existing.Username, user.Username) {
 				return errors.New("login exists")
 			}
 		}
@@ -89,6 +103,19 @@ func (s *server) createUser(w http.ResponseWriter, r *http.Request) {
 		}
 		if proxyHost(node) == "" {
 			return errors.New("node has no public address")
+		}
+		if input.Protocol == "mtproto" {
+			if state.Settings == nil {
+				return errors.New("settings are missing")
+			}
+			if state.Settings.DataEncryptionKey == "" {
+				state.Settings.DataEncryptionKey = randomToken(32)
+			}
+			ciphertext, encryptErr := encryptStoredValue(state.Settings.DataEncryptionKey, secret)
+			if encryptErr != nil {
+				return encryptErr
+			}
+			user.MTProtoSecretCiphertext = ciphertext
 		}
 		state.Users = append(state.Users, user)
 		bumpNodes(state, user.NodeIDs)
@@ -108,7 +135,18 @@ func (s *server) createUser(w http.ResponseWriter, r *http.Request) {
 	state := s.store.snapshot()
 	result := publicProxy(&state, user)
 	s.notifyCategory("proxies", "Создан прокси: "+user.Name)
-	writeJSON(w, http.StatusCreated, map[string]any{"proxy": result, "user": result, "password": input.Password, "proxyUrl": connectionURL(&state, user, input.Password)})
+	credential := input.Password
+	if input.Protocol == "mtproto" {
+		credential = secret
+	}
+	response := map[string]any{"proxy": result, "user": result, "proxyUrl": connectionURL(&state, user, credential)}
+	if input.Protocol == "mtproto" {
+		response["secret"] = mtProtoClientSecret(secret)
+		response["tgUrl"] = mtProtoTGURL(&state, user, secret)
+	} else {
+		response["password"] = input.Password
+	}
+	writeJSON(w, http.StatusCreated, response)
 }
 
 func (s *server) createExternalProxy(w http.ResponseWriter, name, provider, rawURL string) {
@@ -216,6 +254,11 @@ func (s *server) updateUser(w http.ResponseWriter, r *http.Request) {
 				if !validProxyProtocol(protocol) {
 					return errors.New("unknown protocol")
 				}
+				if protocol == "mtproto" || user.Protocol == "mtproto" {
+					if protocol != user.Protocol {
+						return errors.New("mtproto conversion is not supported")
+					}
+				}
 				user.Protocol = protocol
 			}
 			if input.NodeID != nil {
@@ -235,7 +278,20 @@ func (s *server) updateUser(w http.ResponseWriter, r *http.Request) {
 				}
 				user.NodeIDs = []string{nodes[0]}
 			}
-			if input.Password != nil {
+			if input.Password != nil && user.Protocol == "mtproto" {
+				revealedPassword = randomHex(16)
+				if state.Settings == nil {
+					return errors.New("settings are missing")
+				}
+				if state.Settings.DataEncryptionKey == "" {
+					state.Settings.DataEncryptionKey = randomToken(32)
+				}
+				ciphertext, encryptErr := encryptStoredValue(state.Settings.DataEncryptionKey, revealedPassword)
+				if encryptErr != nil {
+					return encryptErr
+				}
+				user.MTProtoSecretCiphertext = ciphertext
+			} else if input.Password != nil {
 				revealedPassword = *input.Password
 				if revealedPassword == "" {
 					revealedPassword = randomToken(18)
@@ -260,6 +316,8 @@ func (s *server) updateUser(w http.ResponseWriter, r *http.Request) {
 		message := "Не удалось обновить прокси: " + err.Error()
 		if err.Error() == "node has no public address" {
 			message = "У выбранной ноды нет публичного адреса"
+		} else if err.Error() == "mtproto conversion is not supported" {
+			message = "Нельзя преобразовать MTProto в HTTP или SOCKS5 — создайте отдельный прокси"
 		}
 		writeError(w, http.StatusBadRequest, message)
 		return
@@ -269,7 +327,12 @@ func (s *server) updateUser(w http.ResponseWriter, r *http.Request) {
 	s.notifyCategory("proxies", "Обновлён прокси: "+result.Name)
 	response := map[string]any{"proxy": public, "user": public}
 	if revealedPassword != "" {
-		response["password"] = revealedPassword
+		if result.Protocol == "mtproto" {
+			response["secret"] = mtProtoClientSecret(revealedPassword)
+			response["tgUrl"] = mtProtoTGURL(&state, result, revealedPassword)
+		} else {
+			response["password"] = revealedPassword
+		}
 		response["proxyUrl"] = connectionURL(&state, result, revealedPassword)
 	}
 	writeJSON(w, http.StatusOK, response)
@@ -381,7 +444,7 @@ func (s *server) deleteUser(w http.ResponseWriter, r *http.Request) {
 }
 
 func validProxyProtocol(protocol string) bool {
-	return protocol == "http" || protocol == "socks5"
+	return protocol == "http" || protocol == "socks5" || protocol == "mtproto"
 }
 
 func proxySource(user *model.ProxyUser) string {
@@ -412,7 +475,7 @@ func publicProxy(state *model.State, user *model.ProxyUser) map[string]any {
 		return map[string]any{}
 	}
 	protocol := user.Protocol
-	if protocol != "http" && protocol != "socks5" {
+	if protocol != "http" && protocol != "socks5" && protocol != "mtproto" {
 		protocol = "http"
 	}
 	source := proxySource(user)
@@ -461,7 +524,9 @@ func publicProxy(state *model.State, user *model.ProxyUser) map[string]any {
 				}
 			}
 		}
-		if endpoint != "" {
+		if endpoint != "" && protocol == "mtproto" {
+			maskedURL = fmt.Sprintf("https://t.me/proxy?server=%s&port=%d&secret=••••", url.QueryEscape(host), port)
+		} else if endpoint != "" {
 			maskedURL = fmt.Sprintf("%s://%s:••••@%s", proxyScheme(protocol), url.User(user.Username).String(), endpoint)
 		}
 	}
@@ -482,7 +547,7 @@ func parseExternalProxyURL(value string) (*url.URL, error) {
 		return nil, errors.New("Укажите полный адрес прокси, например http://login:password@host:3128")
 	}
 	parsed.Scheme = strings.ToLower(parsed.Scheme)
-	if !validProxyProtocol(parsed.Scheme) {
+	if parsed.Scheme != "http" && parsed.Scheme != "socks5" {
 		return nil, errors.New("Внешний прокси должен использовать http:// или socks5://")
 	}
 	if parsed.Port() == "" {
@@ -532,6 +597,9 @@ func connectionURL(state *model.State, user *model.ProxyUser, password string) s
 	if host == "" || port == 0 {
 		return ""
 	}
+	if user.Protocol == "mtproto" {
+		return fmt.Sprintf("https://t.me/proxy?server=%s&port=%d&secret=%s", url.QueryEscape(host), port, url.QueryEscape(mtProtoClientSecret(password)))
+	}
 	return (&url.URL{
 		Scheme: proxyScheme(user.Protocol),
 		User:   url.UserPassword(user.Username, password),
@@ -549,6 +617,9 @@ func proxyHost(node *model.Node) string {
 }
 
 func proxyPort(node *model.Node, protocol string) int {
+	if protocol == "mtproto" {
+		return node.MTProtoPort
+	}
 	if protocol == "socks5" {
 		return node.SOCKSPort
 	}
@@ -560,6 +631,29 @@ func proxyScheme(protocol string) string {
 		return "socks5"
 	}
 	return "http"
+}
+
+func mtProtoSecret(state *model.State, user *model.ProxyUser) (string, error) {
+	if state == nil || state.Settings == nil || user == nil || user.MTProtoSecretCiphertext == "" {
+		return "", errors.New("MTProto secret is unavailable")
+	}
+	return decryptStoredValue(state.Settings.DataEncryptionKey, user.MTProtoSecretCiphertext)
+}
+
+func mtProtoClientSecret(secret string) string {
+	secret = strings.TrimSpace(secret)
+	if strings.HasPrefix(secret, "dd") {
+		return secret
+	}
+	return "dd" + secret
+}
+
+func mtProtoTGURL(state *model.State, user *model.ProxyUser, secret string) string {
+	node := findNode(state, firstNodeID(user))
+	if node == nil || proxyHost(node) == "" || node.MTProtoPort == 0 {
+		return ""
+	}
+	return fmt.Sprintf("tg://proxy?server=%s&port=%d&secret=%s", url.QueryEscape(proxyHost(node)), node.MTProtoPort, url.QueryEscape(mtProtoClientSecret(secret)))
 }
 
 func nodeIDsExist(state *model.State, ids []string) bool {

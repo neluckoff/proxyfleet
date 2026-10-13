@@ -15,8 +15,9 @@ services:
     volumes:
       - node_data:/data
     ports:
-      - "${HTTP_PROXY_PORT:-3128}:3128"
-      - "${SOCKS_PROXY_PORT:-1080}:1080"
+      - "${HTTP_PROXY_PORT:-3128}:${HTTP_PROXY_PORT:-3128}"
+      - "${SOCKS_PROXY_PORT:-1080}:${SOCKS_PROXY_PORT:-1080}"
+      - "${MTPROTO_PROXY_PORT:-8443}:${MTPROTO_PROXY_PORT:-8443}"
     security_opt:
       - no-new-privileges:true
     cap_drop:

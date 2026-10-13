@@ -1,4 +1,4 @@
-const state = { me: null, settings: { systemName: 'ProxyFleet', logoDataUrl: '', telegram: {} }, pendingLogoDataURL: null, platform: { version: '0.3.0' }, overview: {}, analytics: {}, activity: { samples: [] }, nodes: [], proxies: [], events: [], pwa: { supported: false, publicKey: '', subscription: null }, pwaSubscription: null, installPrompt: null, view: 'dashboard', refreshTimer: null, editingNodeId: null, selectedProxyId: null, recap: { background: 'gradient', accent: '#64d2ff' } }
+const state = { me: null, settings: { systemName: 'ProxyFleet', logoDataUrl: '', telegram: {} }, pendingLogoDataURL: null, platform: { version: '0.4.0' }, overview: {}, analytics: {}, activity: { samples: [] }, nodes: [], proxies: [], events: [], pwa: { supported: false, publicKey: '', subscription: null }, pwaSubscription: null, installPrompt: null, view: 'dashboard', refreshTimer: null, editingNodeId: null, selectedProxyId: null, recap: { background: 'gradient', accent: '#64d2ff' } }
 const routes = { dashboard: '/', nodes: '/nodes', proxies: '/proxies', events: '/events', settings: '/settings' }
 const pageTitles = { dashboard: 'Обзор', nodes: 'Ноды', proxies: 'Прокси', events: 'Журнал', settings: 'Настройки' }
 
@@ -336,7 +336,7 @@ function renderRecap() {
   $('#recap-memory').textContent = formatBytes(system.hostMemoryUsedBytes || 0)
   $('#recap-month').textContent = new Intl.DateTimeFormat(window.I18n?.localeTag() || 'ru-RU', { month: 'long', year: 'numeric' }).format(new Date()).toUpperCase()
   $('#recap-note').textContent = $('#recap-note-input').value.trim() || tr('Private infrastructure')
-  $('#recap-version').textContent = `v${state.platform.version || state.me?.version || '0.3.0'}`
+  $('#recap-version').textContent = `v${state.platform.version || state.me?.version || '0.4.0'}`
   const card = $('#recap-card')
   card.className = `recap-card background-${state.recap.background}`
   card.style.setProperty('--recap-accent', state.recap.accent)
@@ -422,7 +422,7 @@ function drawRecapCanvas() {
   ctx.font = '600 25px system-ui, sans-serif'
   ctx.fillText(($('#recap-note-input').value.trim() || tr('Private infrastructure')).slice(0, 42), 76, 1137)
   ctx.textAlign = 'right'
-  ctx.fillText(`v${state.platform.version || state.me?.version || '0.3.0'}`, 884, 1137)
+  ctx.fillText(`v${state.platform.version || state.me?.version || '0.4.0'}`, 884, 1137)
   return canvas
 }
 
@@ -521,7 +521,7 @@ function renderNodes() {
       : `<span class="node-agent-version disconnected"><span class="node-agent-signal" aria-hidden="true"><i></i><i></i><i></i></span><span><small>АГЕНТ</small><b>Не подключён</b></span></span>`
     return `<article class="node-card">
       <div class="node-card-head"><div><h3>${escapeHTML(node.name)}</h3><p>${escapeHTML(node.region || 'Регион не указан')}</p></div><span class="status-pill ${node.status}">${statusText(node.status)}</span></div>
-      <div class="node-address">HTTP&nbsp; ${escapeHTML(host)}:${node.httpPort}<br>SOCKS ${escapeHTML(host)}:${node.socksPort}</div>
+      <div class="node-address">HTTP&nbsp;&nbsp;&nbsp; ${escapeHTML(host)}:${node.httpPort}<br>SOCKS5&nbsp; ${escapeHTML(host)}:${node.socksPort}<br>MTPROTO ${escapeHTML(host)}:${node.mtProtoPort || 8443}</div>
       <div class="node-stats">
         <div class="node-stat"><small>TELEGRAM</small><b class="${node.telegramOk ? 'good' : 'bad'}">${node.telegramOk ? `${node.telegramLatencyMs} мс` : 'ошибка'}</b></div>
         <div class="node-stat"><small>СОЕДИНЕНИЯ</small><b>${node.activeConnections || 0}</b></div>
@@ -592,6 +592,7 @@ function openNodeDialog() {
   $('[data-form-error]', $('#node-form')).textContent = ''
   $('#node-form [name=httpPort]').value = 3128
   $('#node-form [name=socksPort]').value = 1080
+  $('#node-form [name=mtProtoPort]').value = 8443
   $('#node-dialog-eyebrow').textContent = 'НОВАЯ НОДА'
   $('#node-dialog-title').textContent = 'Подключить сервер'
   $('#node-dialog-copy').textContent = 'После создания появится одноразовая Docker-команда. Выполните её на новом VPS.'
@@ -610,6 +611,7 @@ function openEditNodeDialog(node) {
   form.elements.namedItem('advertisedHost').value = node.advertisedHost || ''
   form.elements.namedItem('httpPort').value = node.httpPort || 3128
   form.elements.namedItem('socksPort').value = node.socksPort || 1080
+  form.elements.namedItem('mtProtoPort').value = node.mtProtoPort || 8443
   $('#node-dialog-eyebrow').textContent = 'РЕДАКТИРОВАНИЕ НОДЫ'
   $('#node-dialog-title').textContent = node.name
   $('#node-dialog-copy').textContent = 'Изменения конфигурации применятся после следующего обращения агента к панели.'
@@ -644,10 +646,25 @@ function updateProxyPreview() {
   const protocol = form.elements.namedItem('protocol').value || 'http'
   const username = form.elements.namedItem('username').value.trim() || 'login'
   const host = node?.advertisedHost || node?.publicIp
-  const port = protocol === 'socks5' ? node?.socksPort : node?.httpPort
+  const port = protocol === 'mtproto' ? node?.mtProtoPort || 8443 : protocol === 'socks5' ? node?.socksPort : node?.httpPort
   $('#proxy-create-preview').textContent = host
-    ? `${protocol}://${username}:••••@${host}:${port}`
+    ? protocol === 'mtproto'
+      ? `https://t.me/proxy?server=${host}&port=${port}&secret=••••`
+      : `${protocol}://${username}:••••@${host}:${port}`
     : tr('Сначала укажите публичный адрес выбранной ноды')
+}
+
+function syncManagedProtocolFields() {
+  const form = $('#proxy-form')
+  const mtproto = form.elements.namedItem('protocol').value === 'mtproto'
+  const credentials = $('#proxy-credential-fields')
+  const note = $('#mtproto-create-note')
+  credentials.classList.toggle('hidden', mtproto)
+  note.classList.toggle('hidden', !mtproto)
+  form.elements.namedItem('name').closest('label').classList.toggle('span-2', mtproto)
+  $$('input, button', credentials).forEach(control => { control.disabled = mtproto })
+  const username = form.elements.namedItem('username')
+  username.required = !mtproto
 }
 
 function syncProxySourceFields() {
@@ -663,6 +680,7 @@ function syncProxySourceFields() {
     form.elements.namedItem('source').value = 'external'
     syncProxySourceFields()
   }
+  if (!external) syncManagedProtocolFields()
 }
 
 function maskProxyInput(value) {
@@ -689,7 +707,8 @@ function openProxyDetail(proxy) {
   const external = proxy.source === 'external'
   $('#proxy-detail-source-label').textContent = external ? tr('Источник') : tr('Нода')
   $('#proxy-detail-node').textContent = external ? proxy.provider || tr('Внешний прокси') : proxy.nodeName || tr('Не назначена')
-  $('#proxy-detail-login').textContent = proxy.username
+  $('#proxy-detail-auth-label').textContent = proxy.protocol === 'mtproto' ? tr('Secret') : tr('Логин')
+  $('#proxy-detail-login').textContent = proxy.protocol === 'mtproto' ? tr('Скрыт — можно перевыпустить') : proxy.username
   $('#proxy-detail-endpoint').textContent = proxy.endpoint || '—'
   $('#proxy-detail-time-label').textContent = external ? tr('Последняя проверка') : tr('Создан')
   $('#proxy-detail-created').textContent = external ? proxy.lastCheckedAt && !proxy.lastCheckedAt.startsWith('0001-') ? `${formatDateTime(proxy.lastCheckedAt)}${proxy.latencyMs ? ` · ${proxy.latencyMs} мс` : ''}` : tr('Ещё не проверялся') : formatDateTime(proxy.createdAt)
@@ -702,7 +721,8 @@ function openProxyDetail(proxy) {
   $('#proxy-reset-password').classList.toggle('hidden', external)
   $('#proxy-edit-provider').value = proxy.provider || ''
   $('#proxy-edit-external-url').value = ''
-  $('#proxy-edit-protocol').value = proxy.protocol === 'socks5' ? 'socks5' : 'http'
+  $('#proxy-edit-protocol').value = ['http', 'socks5', 'mtproto'].includes(proxy.protocol) ? proxy.protocol : 'http'
+  $('#proxy-edit-protocol').disabled = proxy.protocol === 'mtproto'
   const nodeSelect = $('#proxy-edit-node')
   nodeSelect.innerHTML = state.nodes.map(node => {
     const host = node.advertisedHost || node.publicIp
@@ -715,6 +735,7 @@ function openProxyDetail(proxy) {
     ? proxy.enabled ? tr('Исключить из использования') : tr('Вернуть в использование')
     : proxy.enabled ? tr('Отключить прокси') : tr('Включить прокси')
   toggle.classList.toggle('danger', proxy.enabled)
+  $('#proxy-reset-password').textContent = proxy.protocol === 'mtproto' ? tr('Перевыпустить secret') : tr('Сменить пароль')
   window.I18n?.apply($('#proxy-detail-dialog'))
   $('#proxy-detail-dialog').showModal()
 }
@@ -1050,6 +1071,7 @@ $('#node-form').addEventListener('submit', async event => {
   const payload = Object.fromEntries(form)
   payload.httpPort = Number(payload.httpPort)
   payload.socksPort = Number(payload.socksPort)
+  payload.mtProtoPort = Number(payload.mtProtoPort)
   const errorNode = $('[data-form-error]', event.currentTarget)
   try {
     if (state.editingNodeId) {
@@ -1077,6 +1099,7 @@ $('#nodes-grid').addEventListener('click', event => {
 $('#proxy-form').addEventListener('input', updateProxyPreview)
 $('#proxy-form').addEventListener('change', event => {
   if (event.target.name === 'source') syncProxySourceFields()
+  if (event.target.name === 'protocol') syncManagedProtocolFields()
   updateProxyPreview()
 })
 $('#generate-proxy-password').addEventListener('click', () => {
@@ -1107,7 +1130,7 @@ $('#proxy-form').addEventListener('submit', async event => {
     const result = await api('/api/proxies', { method: 'POST', body: JSON.stringify(payload) })
     $('#proxy-dialog').close()
     if (source === 'external') showToast('Внешний прокси добавлен и сохранён в зашифрованном виде')
-    else showSecret('Прокси готов', 'Скопируйте готовую ссылку подключения. Она показывается только один раз:', result.proxyUrl || result.password)
+    else showSecret(form.get('protocol') === 'mtproto' ? 'MTProto готов' : 'Прокси готов', form.get('protocol') === 'mtproto' ? 'Скопируйте ссылку — она сразу откроется в Telegram:' : 'Скопируйте готовую ссылку подключения. Она показывается только один раз:', result.proxyUrl || result.password)
     await refreshAll()
   } catch (error) { errorNode.textContent = error.message }
 })
@@ -1204,7 +1227,7 @@ $('#proxy-reset-password').addEventListener('click', async () => {
   try {
     const result = await api(`/api/proxies/${proxy.id}`, { method: 'PATCH', body: JSON.stringify({ password: '' }) })
     $('#proxy-detail-dialog').close()
-    showSecret('Пароль обновлён', 'Старая ссылка больше не работает. Скопируйте новую:', result.proxyUrl || result.password)
+    showSecret(proxy.protocol === 'mtproto' ? 'Secret обновлён' : 'Пароль обновлён', 'Старая ссылка больше не работает. Скопируйте новую:', result.proxyUrl || result.password)
     await refreshAll()
   } catch (error) { showToast(error.message) }
 })
@@ -1271,7 +1294,7 @@ function setEmpty(root, text) { root.className = 'empty-state'; root.textContent
 function statusText(status) { return tr(({ online: 'Онлайн', offline: 'Офлайн', pending: 'Ожидает' })[status] || status) }
 function proxyStatusText(status) { return tr(({ online: 'Готов', offline: 'Нода офлайн', pending: 'Ожидает ноду', disabled: 'Отключён', unassigned: 'Без ноды', unchecked: 'Не проверен', unavailable: 'Недоступен' })[status] || status) }
 function proxyStatusDescription(status) { return tr(({ online: 'Прокси готов принимать подключения', offline: 'Нода не отвечает — подключения временно недоступны', pending: 'Агент ноды ещё не подключился к панели', disabled: 'Доступ выключен вручную', unassigned: 'Выберите ноду для этого прокси', unchecked: 'Внешний прокси ещё не проверялся', unavailable: 'Адрес внешнего прокси не отвечает' })[status] || '') }
-function proxyProtocolLabel(protocol) { return protocol === 'socks5' ? 'SOCKS5' : 'HTTP' }
+function proxyProtocolLabel(protocol) { return protocol === 'mtproto' ? 'MTPROTO' : protocol === 'socks5' ? 'SOCKS5' : 'HTTP' }
 function formatBytes(value) { const english = window.I18n?.locale() === 'en'; if (!value) return english ? '0 B' : '0 Б'; const units = english ? ['B','KB','MB','GB','TB'] : ['Б','КБ','МБ','ГБ','ТБ']; const i = Math.min(Math.floor(Math.log(value) / Math.log(1024)), units.length - 1); const number = new Intl.NumberFormat(window.I18n?.localeTag() || 'ru-RU', { maximumFractionDigits: i ? 1 : 0 }).format(value / 1024 ** i); return `${number} ${units[i]}` }
 function formatDuration(value) { const seconds = Number(value) || 0; if (!seconds) return '—'; const days = Math.floor(seconds / 86400); const hours = Math.floor((seconds % 86400) / 3600); const minutes = Math.floor((seconds % 3600) / 60); if (window.I18n?.locale() === 'en') { if (days) return `${days}d ${hours}h`; return hours ? `${hours}h ${minutes}m` : `${minutes}m` } if (days) return `${days} д ${hours} ч`; return hours ? `${hours} ч ${minutes} мин` : `${minutes} мин` }
 function formatAgents(value) { const number = Number(value) || 0; if (window.I18n?.locale() === 'en') return `${number} ${number === 1 ? 'agent' : 'agents'}`; const mod100 = number % 100; const mod10 = number % 10; const word = mod100 >= 11 && mod100 <= 19 ? 'агентов' : mod10 === 1 ? 'агент' : mod10 >= 2 && mod10 <= 4 ? 'агента' : 'агентов'; return `${number} ${word}` }

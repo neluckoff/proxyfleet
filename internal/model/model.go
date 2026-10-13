@@ -39,6 +39,7 @@ type Node struct {
 	AdvertisedHost       string    `json:"advertisedHost"`
 	HTTPPort             int       `json:"httpPort"`
 	SOCKSPort            int       `json:"socksPort"`
+	MTProtoPort          int       `json:"mtProtoPort"`
 	AllowPrivateTargets  bool      `json:"allowPrivateTargets"`
 	EnrollTokenHash      string    `json:"enrollTokenHash,omitempty"`
 	AgentTokenHash       string    `json:"agentTokenHash,omitempty"`
@@ -64,20 +65,21 @@ type Node struct {
 }
 
 type ProxyUser struct {
-	ID                    string    `json:"id"`
-	Name                  string    `json:"name"`
-	Username              string    `json:"username"`
-	PasswordHash          string    `json:"passwordHash"`
-	Protocol              string    `json:"protocol,omitempty"`
-	Source                string    `json:"source,omitempty"`
-	Provider              string    `json:"provider,omitempty"`
-	ExternalURLCiphertext string    `json:"externalUrlCiphertext,omitempty"`
-	ExternalLastCheckedAt time.Time `json:"externalLastCheckedAt,omitempty"`
-	ExternalLatencyMS     int64     `json:"externalLatencyMs,omitempty"`
-	ExternalLastError     string    `json:"externalLastError,omitempty"`
-	NodeIDs               []string  `json:"nodeIds"`
-	Enabled               bool      `json:"enabled"`
-	CreatedAt             time.Time `json:"createdAt"`
+	ID                      string    `json:"id"`
+	Name                    string    `json:"name"`
+	Username                string    `json:"username"`
+	PasswordHash            string    `json:"passwordHash"`
+	Protocol                string    `json:"protocol,omitempty"`
+	Source                  string    `json:"source,omitempty"`
+	Provider                string    `json:"provider,omitempty"`
+	ExternalURLCiphertext   string    `json:"externalUrlCiphertext,omitempty"`
+	ExternalLastCheckedAt   time.Time `json:"externalLastCheckedAt,omitempty"`
+	ExternalLatencyMS       int64     `json:"externalLatencyMs,omitempty"`
+	ExternalLastError       string    `json:"externalLastError,omitempty"`
+	MTProtoSecretCiphertext string    `json:"mtProtoSecretCiphertext,omitempty"`
+	NodeIDs                 []string  `json:"nodeIds"`
+	Enabled                 bool      `json:"enabled"`
+	CreatedAt               time.Time `json:"createdAt"`
 }
 
 type PushSubscription struct {
@@ -114,11 +116,12 @@ type TrafficSample struct {
 }
 
 type AgentUser struct {
-	ID           string `json:"id"`
-	Username     string `json:"username"`
-	PasswordHash string `json:"passwordHash"`
-	Protocol     string `json:"protocol,omitempty"`
-	Enabled      bool   `json:"enabled"`
+	ID            string `json:"id"`
+	Username      string `json:"username"`
+	PasswordHash  string `json:"passwordHash"`
+	MTProtoSecret string `json:"mtProtoSecret,omitempty"`
+	Protocol      string `json:"protocol,omitempty"`
+	Enabled       bool   `json:"enabled"`
 }
 
 type AgentConfig struct {
@@ -126,6 +129,7 @@ type AgentConfig struct {
 	NodeName            string      `json:"nodeName"`
 	HTTPPort            int         `json:"httpPort"`
 	SOCKSPort           int         `json:"socksPort"`
+	MTProtoPort         int         `json:"mtProtoPort"`
 	AllowPrivateTargets bool        `json:"allowPrivateTargets"`
 	Users               []AgentUser `json:"users"`
 }
