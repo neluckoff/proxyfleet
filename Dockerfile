@@ -10,7 +10,7 @@ ARG TARGETARCH
 ARG TELEMT_VERSION=3.5.14
 RUN apk add --no-cache ca-certificates curl tar \
     && case "$TARGETARCH" in \
-         amd64) archive="telemt-x86_64-linux-musl.tar.gz"; checksum="fc72921db5773954076cce1522e5e7fc5f8b7f696357697a97f144359f23fdd2" ;; \
+         amd64) archive="telemt-x86_64-linux-musl.tar.gz"; checksum="71c1454f79cf755edea0985500629daba553002f9863be754e8e38a418822773" ;; \
          arm64) archive="telemt-aarch64-linux-musl.tar.gz"; checksum="21795430c4165cf964405459714d08eea319edaa5c9027beac4de373c356d84d" ;; \
          *) echo "Unsupported architecture: $TARGETARCH" >&2; exit 1 ;; \
        esac \
