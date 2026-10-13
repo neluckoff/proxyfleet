@@ -12,7 +12,7 @@
   <a href="https://github.com/neluckoff/proxyfleet/actions/workflows/ci.yml"><img src="https://github.com/neluckoff/proxyfleet/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
   <a href="https://github.com/neluckoff/proxyfleet/actions/workflows/docker-publish.yml"><img src="https://github.com/neluckoff/proxyfleet/actions/workflows/docker-publish.yml/badge.svg" alt="Docker publish"></a>
   <a href="https://hub.docker.com/r/neluckoff/proxyfleet"><img src="https://img.shields.io/docker/pulls/neluckoff/proxyfleet?logo=docker&label=Docker%20Pulls" alt="Docker pulls"></a>
-  <a href="https://go.dev/"><img src="https://img.shields.io/badge/Go-1.23+-00ADD8?logo=go&logoColor=white" alt="Go 1.23+"></a>
+  <a href="https://go.dev/"><img src="https://img.shields.io/badge/Go-1.26+-00ADD8?logo=go&logoColor=white" alt="Go 1.26+"></a>
 </p>
 
 <p align="center">
@@ -83,7 +83,7 @@ For a standard deployment:
 
 For local development without Docker:
 
-- Go 1.23 or newer;
+- Go 1.26 or newer;
 - Node.js only for JavaScript syntax checks.
 
 ## 🚀 Quick start (recommended)
@@ -390,4 +390,4 @@ Please read [CONTRIBUTING.md](.github/CONTRIBUTING.md) before opening a pull req
 
 ## 📄 License
 
-A license has not been selected yet. Until a `LICENSE` file is added, the source is available for inspection, but standard open-source usage and redistribution rights are not granted.
+ProxyFleet is open-source software licensed under the [MIT License](LICENSE).
