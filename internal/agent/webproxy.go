@@ -55,12 +55,10 @@ func (w *webProxyRuntime) Apply(parent context.Context, port int, host, publicIP
 	if host == "" || strings.ContainsAny(host, "/: ") || net.ParseIP(host) != nil {
 		return fmt.Errorf("invalid WEB proxy hostname %q", host)
 	}
-	parsedIP := net.ParseIP(strings.TrimSpace(publicIP))
-	if parsedIP == nil {
+	if net.ParseIP(strings.TrimSpace(publicIP)) == nil {
 		return fmt.Errorf("invalid WEB proxy public IP %q", publicIP)
 	}
-	publicAddr := net.JoinHostPort(parsedIP.String(), "443")
-	signature := webProxySignature(port, host, publicAddr, users)
+	signature := webProxySignature(port, host, publicIP, users)
 	if w.running.Load() && w.signature == signature {
 		return nil
 	}
@@ -72,22 +70,23 @@ func (w *webProxyRuntime) Apply(parent context.Context, port int, host, publicIP
 	if err := os.WriteFile(filepath.Join(publicDir, "index.html"), []byte(webProxyDecoy), 0o600); err != nil {
 		return fmt.Errorf("write WEB proxy decoy: %w", err)
 	}
-	configPath := filepath.Join(w.dataDir, "telemt.toml")
-	config := renderTelemtWebConfig(port, host, publicAddr, publicDir, users)
+	configPath := filepath.Join(w.dataDir, "tgwebproxy.toml")
+	adminSocket := filepath.Join(w.dataDir, "admin.sock")
+	config := renderTGWebProxyConfig(port, host, publicDir, adminSocket, users)
 	if err := os.WriteFile(configPath, []byte(config), 0o600); err != nil {
 		return fmt.Errorf("write WEB proxy config: %w", err)
 	}
-	binary := envAgent("TELEMT_BINARY", "/usr/local/bin/telemt")
+	binary := envAgent("TGWEBPROXY_BINARY", "/usr/local/bin/tgwebproxy")
 	if _, err := os.Stat(binary); err != nil {
-		return fmt.Errorf("Telemt binary is unavailable: %w", err)
+		return fmt.Errorf("tgwebproxy binary is unavailable: %w", err)
 	}
-	cmd := exec.CommandContext(parent, binary, configPath)
+	cmd := exec.CommandContext(parent, binary, "-config", configPath)
 	cmd.Dir = w.dataDir
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	cmd.Env = os.Environ()
 	if err := cmd.Start(); err != nil {
-		return fmt.Errorf("start Telemt WEB proxy: %w", err)
+		return fmt.Errorf("start tgwebproxy WEB relay: %w", err)
 	}
 	w.cmd = cmd
 	w.done = make(chan struct{})
@@ -142,10 +141,10 @@ func (w *webProxyRuntime) stopLocked() {
 	}
 }
 
-func webProxySignature(port int, host, publicAddr string, users map[string]string) string {
+func webProxySignature(port int, host, publicIP string, users map[string]string) string {
 	keys := sortedWebProxyUsers(users)
 	var value strings.Builder
-	fmt.Fprintf(&value, "%d\n%s\n%s\n", port, host, publicAddr)
+	fmt.Fprintf(&value, "%d\n%s\n%s\n", port, host, strings.TrimSpace(publicIP))
 	for _, key := range keys {
 		fmt.Fprintf(&value, "%s=%s\n", key, users[key])
 	}
@@ -153,60 +152,35 @@ func webProxySignature(port int, host, publicAddr string, users map[string]strin
 	return hex.EncodeToString(sum[:])
 }
 
-func renderTelemtWebConfig(port int, host, publicAddr, publicDir string, users map[string]string) string {
+func renderTGWebProxyConfig(port int, host, publicDir, adminSocket string, users map[string]string) string {
 	keys := sortedWebProxyUsers(users)
 	var config strings.Builder
-	fmt.Fprint(&config, `[general]
-use_middle_proxy = true
-log_level = "normal"
+	fmt.Fprintf(&config, `domain = %q
+listen = %q
+behind_proxy = true
+site = %q
+log_level = "info"
+max_streams = 64
 
-[general.links]
-show = []
-
-[access.users]
-`)
-	for _, key := range keys {
-		fmt.Fprintf(&config, "%q = %q\n", key, users[key])
-	}
-	fmt.Fprintf(&config, `
-[[server.listeners]]
-ip = "127.0.0.1"
-port = %d
-transport = "web"
-proxy_protocol = false
-reuse_allow = false
-web_client_ip_source = "x_forwarded_for"
-web_trusted_proxy_cidrs = ["127.0.0.1/32"]
-
-[server.api]
-enabled = false
-
-[web]
-enabled = true
-carrier = "https"
-decoy_fasttrack_mode = "off"
-http_connection_capacity_action = "drop"
-
-[[web.vhosts]]
-host = %q
-public_addr = %q
-
-[web.vhosts.decoy]
-mode = "static_directory"
-directory = %q
-index = "index.html"
-`, port, host, publicAddr, publicDir)
+[admin]
+listen = %q
+`, host, net.JoinHostPort("127.0.0.1", fmt.Sprint(port)), publicDir, adminSocket)
 	for _, key := range keys {
 		fmt.Fprintf(&config, `
-[[web.vhosts.profiles]]
-user = %q
-secret_mode = "dd"
-max_sessions = 8
-max_streams = 512
-max_streams_per_session = 64
-`, key)
+[[secret]]
+value = %q
+label = %q
+`, webProxyRelaySecret(users[key]), key)
 	}
 	return config.String()
+}
+
+func webProxyRelaySecret(secret string) string {
+	secret = strings.ToLower(strings.TrimSpace(secret))
+	if strings.HasPrefix(secret, "dd") {
+		return secret
+	}
+	return "dd" + secret
 }
 
 func sortedWebProxyUsers(users map[string]string) []string {

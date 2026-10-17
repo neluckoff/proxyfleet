@@ -5,26 +5,26 @@ COPY cmd ./cmd
 COPY internal ./internal
 RUN CGO_ENABLED=0 GOOS=linux go build -trimpath -ldflags="-s -w" -o /out/proxyfleet ./cmd/proxyfleet
 
-FROM alpine:3.21 AS telemt
-ARG TARGETARCH
-ARG TELEMT_VERSION=3.5.14
+FROM golang:1.26-alpine AS tgwebproxy
+ARG TGWEBPROXY_COMMIT=44aa88ac176ee89a9bf8cdf1b76227d8c653f2a1
+ARG TGWEBPROXY_SHA256=b03fe9aee0e843895f5849db9bca547c4609fc05d52fa3ee13a1aca84d94959b
 RUN apk add --no-cache ca-certificates curl tar \
-    && case "$TARGETARCH" in \
-         amd64) archive="telemt-x86_64-linux-musl.tar.gz"; checksum="71c1454f79cf755edea0985500629daba553002f9863be754e8e38a418822773" ;; \
-         arm64) archive="telemt-aarch64-linux-musl.tar.gz"; checksum="21795430c4165cf964405459714d08eea319edaa5c9027beac4de373c356d84d" ;; \
-         *) echo "Unsupported architecture: $TARGETARCH" >&2; exit 1 ;; \
-       esac \
-    && curl -fsSL --retry 3 -o /tmp/telemt.tar.gz "https://github.com/telemt/telemt/releases/download/${TELEMT_VERSION}/${archive}" \
-    && echo "${checksum}  /tmp/telemt.tar.gz" | sha256sum -c - \
-    && mkdir -p /out \
-    && tar -xzf /tmp/telemt.tar.gz -C /out telemt \
-    && curl -fsSL --retry 3 -o /out/TELEMT-LICENSE "https://raw.githubusercontent.com/telemt/telemt/${TELEMT_VERSION}/LICENSE"
+    && curl -fsSL --retry 3 -o /tmp/tgwebproxy.tar.gz "https://codeload.github.com/kesevone/tgwebproxy/tar.gz/${TGWEBPROXY_COMMIT}" \
+    && echo "${TGWEBPROXY_SHA256}  /tmp/tgwebproxy.tar.gz" | sha256sum -c - \
+    && mkdir -p /src /out \
+    && tar -xzf /tmp/tgwebproxy.tar.gz -C /src --strip-components=1
+WORKDIR /src
+RUN go mod download \
+    && CGO_ENABLED=0 GOOS=linux go build -trimpath -ldflags="-s -w" -o /out/tgwebproxy ./cmd/tgwebproxy \
+    && CGO_ENABLED=0 GOOS=linux go build -trimpath -ldflags="-s -w" -o /out/tgwebproxy-probe ./cmd/tgwebproxy-probe \
+    && cp LICENSE /out/TGWEBPROXY-LICENSE
 
 FROM alpine:3.21
 RUN apk add --no-cache ca-certificates tzdata && addgroup -S proxyfleet && adduser -S -G proxyfleet proxyfleet
 COPY --from=builder /out/proxyfleet /usr/local/bin/proxyfleet
-COPY --from=telemt /out/telemt /usr/local/bin/telemt
-COPY --from=telemt /out/TELEMT-LICENSE /usr/share/licenses/telemt/LICENSE
+COPY --from=tgwebproxy /out/tgwebproxy /usr/local/bin/tgwebproxy
+COPY --from=tgwebproxy /out/tgwebproxy-probe /usr/local/bin/tgwebproxy-probe
+COPY --from=tgwebproxy /out/TGWEBPROXY-LICENSE /usr/share/licenses/tgwebproxy/LICENSE
 RUN mkdir -p /data && chown proxyfleet:proxyfleet /data
 USER proxyfleet
 VOLUME ["/data"]

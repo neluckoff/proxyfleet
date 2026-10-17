@@ -60,7 +60,7 @@ docker image prune -f
 
 The control-plane container is recreated while the persistent volume remains intact.
 
-For reproducible deployments, pin `PROXYFLEET_IMAGE` to an exact release such as `neluckoff/proxyfleet:0.5.1` or to an immutable image digest shown on the **Tags** page.
+For reproducible deployments, pin `PROXYFLEET_IMAGE` to an exact release such as `neluckoff/proxyfleet:0.5.2` or to an immutable image digest shown on the **Tags** page.
 
 ## 🔐 Security notes
 

@@ -5,21 +5,21 @@ import (
 	"testing"
 )
 
-func TestRenderTelemtWebConfigSupportsMultipleSecrets(t *testing.T) {
-	config := renderTelemtWebConfig(8443, "cdn.example.test", "203.0.113.10:443", "/data/webproxy/public", map[string]string{
+func TestRenderTGWebProxyConfigSupportsMultipleSecrets(t *testing.T) {
+	config := renderTGWebProxyConfig(8443, "cdn.example.test", "/data/webproxy/public", "/data/webproxy/admin.sock", map[string]string{
 		"proxy-b": "22222222222222222222222222222222",
 		"proxy-a": "11111111111111111111111111111111",
 	})
 	for _, expected := range []string{
-		`transport = "web"`,
-		`reuse_allow = false`,
-		`port = 8443`,
-		`host = "cdn.example.test"`,
-		`public_addr = "203.0.113.10:443"`,
-		`carrier = "https"`,
-		`secret_mode = "dd"`,
-		`"proxy-a" = "11111111111111111111111111111111"`,
-		`"proxy-b" = "22222222222222222222222222222222"`,
+		`domain = "cdn.example.test"`,
+		`listen = "127.0.0.1:8443"`,
+		`behind_proxy = true`,
+		`site = "/data/webproxy/public"`,
+		`listen = "/data/webproxy/admin.sock"`,
+		`value = "dd11111111111111111111111111111111"`,
+		`label = "proxy-a"`,
+		`value = "dd22222222222222222222222222222222"`,
+		`label = "proxy-b"`,
 	} {
 		if !strings.Contains(config, expected) {
 			t.Fatalf("generated config does not contain %q:\n%s", expected, config)
@@ -28,10 +28,16 @@ func TestRenderTelemtWebConfigSupportsMultipleSecrets(t *testing.T) {
 	if strings.Index(config, "proxy-a") > strings.Index(config, "proxy-b") {
 		t.Fatal("users must be rendered deterministically")
 	}
-	if strings.Count(config, "[[web.vhosts.profiles]]") != 2 {
+	if strings.Count(config, "[[secret]]") != 2 {
 		t.Fatalf("expected one WEB profile per user:\n%s", config)
 	}
-	if strings.Contains(config, `carrier = "https-lanes"`) {
-		t.Fatalf("https-lanes requires public HTTP/2 and is not compatible with Telegram iOS:\n%s", config)
+}
+
+func TestWebProxyRelaySecretUsesPaddedIntermediateMode(t *testing.T) {
+	if got := webProxyRelaySecret("AABBCCDDEEFF00112233445566778899"); got != "ddaabbccddeeff00112233445566778899" {
+		t.Fatalf("unexpected relay secret: %q", got)
+	}
+	if got := webProxyRelaySecret("dd00112233445566778899aabbccddeeff"); got != "dd00112233445566778899aabbccddeeff" {
+		t.Fatalf("dd prefix was duplicated: %q", got)
 	}
 }

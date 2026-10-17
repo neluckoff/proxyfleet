@@ -18,7 +18,7 @@ import (
 	"github.com/neluckoff/proxyfleet/internal/model"
 )
 
-const agentVersion = "0.5.1"
+const agentVersion = "0.5.2"
 
 type persistedState struct {
 	NodeID     string            `json:"nodeId"`

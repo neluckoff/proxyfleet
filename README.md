@@ -181,15 +181,15 @@ The complete connection URL is shown only after creation or credential rotation.
 
 ### Telegram WEB proxy setup
 
-Telegram WEB proxy is an HTTPS/WSS transport and requires a dedicated DNS name resolving to the node's stable public IP. Public traffic always arrives on TCP `443`; ProxyFleet runs Telemt on a private loopback port (default `8443`) and your nginx or Caddy instance terminates TLS in front of it.
+Telegram WEB proxy is an HTTPS/WSS transport and requires a dedicated DNS name resolving to the node's stable public IP. Public traffic always arrives on TCP `443`; ProxyFleet runs [tgwebproxy](https://github.com/kesevone/tgwebproxy) on a private loopback port (default `8443`) and your nginx or Caddy instance terminates TLS in front of it.
 
 1. Create an unproxied `A` record such as `cdn.example.com` pointing directly to the node (do not place a CDN/HTTP proxy in front of it).
 2. Enter that exact hostname as the node's **Public host** in ProxyFleet.
 3. Obtain a valid TLS certificate for the hostname.
-4. Forward HTTPS/WebSocket traffic from `:443` to the private Telemt listener:
+4. Forward HTTPS/WebSocket traffic from `:443` to the private tgwebproxy listener:
 
 ```nginx
-map $http_upgrade $telemt_connection_upgrade {
+map $http_upgrade $tgwebproxy_connection_upgrade {
     default upgrade;
     ''      '';
 }
@@ -215,7 +215,7 @@ server {
         proxy_set_header Host $host;
         proxy_set_header X-Forwarded-For $remote_addr;
         proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection $telemt_connection_upgrade;
+        proxy_set_header Connection $tgwebproxy_connection_upgrade;
         proxy_connect_timeout 5s;
         proxy_buffering off;
         proxy_request_buffering off;
@@ -226,7 +226,24 @@ server {
 }
 ```
 
-Do not expose port `8443`: it intentionally listens on `127.0.0.1`. The generated client link contains only the hostname and secret, for example `tg://webproxy?server=cdn.example.com&secret=dd…`. ProxyFleet deliberately uses Telemt's broadly compatible `https` carrier: unlike `https-lanes`, it does not require public HTTP/2 and it is supported by Telegram iOS as well as compatible Telegram Desktop builds. See the upstream [Telemt WEB deployment guide](https://github.com/telemt/telemt/blob/main/docs/WEB/WEB_PROXY.en.md) for the complete transport contract and operational checks.
+Do not expose port `8443`: it intentionally listens on `127.0.0.1`. The generated client link contains only the hostname and secret, for example `tg://webproxy?server=cdn.example.com&secret=dd…`. tgwebproxy first uses WebSocket and automatically falls back to ordinary HTTPS long polling when WebSocket transport is unavailable.
+
+WEB proxy support is currently proven in compatible Telegram Desktop builds. Android support is experimental and iOS support depends on the client version, so a server that passes every check can still remain on “Connecting” in a client without the WEB transport. HTTP and SOCKS5 remain the compatible choices for such clients.
+
+To verify the entire public deployment — TLS, bridge authorization, WebSocket/HTTPS carrier and a real Telegram `req_pq_multi` exchange — run the bundled probe inside the node container, replacing the placeholders with the hostname and the secret displayed by ProxyFleet:
+
+```bash
+docker exec proxyfleet-node tgwebproxy-probe \
+  -domain cdn.example.com \
+  -secret dd0123456789abcdef0123456789abcdef
+```
+
+The probe must finish successfully. If the cover page works but the probe fails, inspect the nginx virtual host and node logs before testing the link in Telegram:
+
+```bash
+docker logs --tail 200 proxyfleet-node
+curl -I https://cdn.example.com
+```
 
 ### Third-party proxies
 
@@ -280,20 +297,20 @@ docker image prune -f
 
 This recreates the container with the newest `neluckoff/proxyfleet:latest` image while preserving `proxyfleet-control-data`.
 
-For reproducible production deployments, pin `PROXYFLEET_IMAGE` to an exact release such as `neluckoff/proxyfleet:0.5.1` or to an immutable image digest from [Docker Hub Tags](https://hub.docker.com/r/neluckoff/proxyfleet/tags).
+For reproducible production deployments, pin `PROXYFLEET_IMAGE` to an exact release such as `neluckoff/proxyfleet:0.5.2` or to an immutable image digest from [Docker Hub Tags](https://hub.docker.com/r/neluckoff/proxyfleet/tags).
 
 Update a standalone node installed with the generated `docker run` command:
 
 ```bash
-docker pull neluckoff/proxyfleet:0.5.1
+docker pull neluckoff/proxyfleet:0.5.2
 docker rm -f proxyfleet-node
 docker run -d --name proxyfleet-node --restart unless-stopped --network host \
   -v proxyfleet_node_data:/data \
   -e CONTROL_URL=https://proxy.example.com \
-  neluckoff/proxyfleet:0.5.1 agent
+  neluckoff/proxyfleet:0.5.2 agent
 ```
 
-Replace `CONTROL_URL` with your panel URL. The existing `proxyfleet_node_data` volume contains the enrolled agent credential, so no new enrollment token is needed. Reliable Telegram WEB support requires both the control plane and node agents to run version `0.5.1` or newer.
+Replace `CONTROL_URL` with your panel URL. The existing `proxyfleet_node_data` volume contains the enrolled agent credential, so no new enrollment token is needed. The tgwebproxy-based Telegram WEB runtime requires both the control plane and node agents to run version `0.5.2` or newer.
 
 ### GitHub source installation
 
@@ -341,8 +358,8 @@ docker compose up -d --no-build
 | `AGENT_STATE_PATH` | agent | `/data/agent.json` | Persistent agent state |
 | `AGENT_HEALTH_SOCKET` | agent | `/tmp/proxyfleet-agent-health.sock` | Internal Unix socket used by Docker health checks |
 | `HEALTHCHECK_URL` | control plane | `http://127.0.0.1:8080/health` | Override for the built-in control-plane health check |
-| `TELEMT_BINARY` | agent | `/usr/local/bin/telemt` | Telemt executable used for Telegram WEB |
-| `WEB_PROXY_DATA_DIR` | agent | `/data/webproxy` | Generated Telemt WEB configuration and decoy directory |
+| `TGWEBPROXY_BINARY` | agent | `/usr/local/bin/tgwebproxy` | tgwebproxy executable used for Telegram WEB |
+| `WEB_PROXY_DATA_DIR` | agent | `/data/webproxy` | Generated tgwebproxy configuration, admin socket, and cover directory |
 
 ### Container health
 
@@ -413,17 +430,17 @@ To prepare a release, update both version constants before merging:
 
 ```go
 // internal/control/server.go
-const version = "0.5.1"
+const version = "0.5.2"
 
 // internal/agent/agent.go
-const agentVersion = "0.5.1"
+const agentVersion = "0.5.2"
 ```
 
-If `v0.5.1` does not exist yet, the workflow produces Docker tags `:0.5.1`, `:0.5`, and `:latest`, then creates GitHub Release `v0.5.1`. If the Git tag already exists, the workflow exits without republishing anything. Manual workflow runs follow the same version and duplicate checks.
+If `v0.5.2` does not exist yet, the workflow produces Docker tags `:0.5.2`, `:0.5`, and `:latest`, then creates GitHub Release `v0.5.2`. If the Git tag already exists, the workflow exits without republishing anything. Manual workflow runs follow the same version and duplicate checks.
 
 ## 🙏 Third-party software
 
-Telegram WEB service on proxy nodes is provided by [Telemt](https://github.com/telemt/telemt), pinned to version `3.5.14` in the Docker build. The published image contains Telemt's license at `/usr/share/licenses/telemt/LICENSE`. ProxyFleet is not affiliated with or endorsed by Telegram or the Telemt project.
+Telegram WEB service on proxy nodes is provided by [kesevone/tgwebproxy](https://github.com/kesevone/tgwebproxy), pinned to commit `44aa88ac176ee89a9bf8cdf1b76227d8c653f2a1` and verified by source archive checksum during the Docker build. The published image contains its MIT license at `/usr/share/licenses/tgwebproxy/LICENSE`. ProxyFleet is not affiliated with or endorsed by Telegram or the tgwebproxy project.
 
 ## 🤝 Contributing
 
