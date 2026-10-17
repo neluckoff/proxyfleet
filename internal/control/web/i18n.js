@@ -388,7 +388,6 @@
       'Скрыт — можно перевыпустить': 'Hidden — it can be rotated',
       'Перевыпустить secret': 'Rotate secret',
       'Telegram WEB готов': 'Telegram WEB is ready',
-      'Скопируйте ссылку — она сразу откроется в Telegram Desktop:': 'Copy the link — it opens directly in Telegram Desktop:',
       'Для Telegram WEB укажите домен ноды и дождитесь определения публичного IP.': 'For Telegram WEB, set the node domain and wait for its public IP to be detected.',
       'Скопируйте ссылку — она сразу откроется в Telegram:': 'Copy the link — it opens directly in Telegram:',
       'Secret обновлён': 'Secret rotated',

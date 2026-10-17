@@ -1,4 +1,4 @@
-const state = { me: null, settings: { systemName: 'ProxyFleet', logoDataUrl: '', telegram: {} }, pendingLogoDataURL: null, platform: { version: '0.5.0' }, overview: {}, analytics: {}, activity: { samples: [] }, nodes: [], proxies: [], events: [], pwa: { supported: false, publicKey: '', subscription: null }, pwaSubscription: null, installPrompt: null, refreshTimer: null, platformTimer: null, view: 'dashboard', editingNodeId: null, selectedProxyId: null, recap: { background: 'gradient', accent: '#64d2ff' } }
+const state = { me: null, settings: { systemName: 'ProxyFleet', logoDataUrl: '', telegram: {} }, pendingLogoDataURL: null, platform: { version: '0.5.1' }, overview: {}, analytics: {}, activity: { samples: [] }, nodes: [], proxies: [], events: [], pwa: { supported: false, publicKey: '', subscription: null }, pwaSubscription: null, installPrompt: null, refreshTimer: null, platformTimer: null, view: 'dashboard', editingNodeId: null, selectedProxyId: null, recap: { background: 'gradient', accent: '#64d2ff' } }
 const routes = { dashboard: '/', nodes: '/nodes', proxies: '/proxies', events: '/events', settings: '/settings' }
 const pageTitles = { dashboard: 'Обзор', nodes: 'Ноды', proxies: 'Прокси', events: 'Журнал', settings: 'Настройки' }
 
@@ -353,7 +353,7 @@ function renderRecap() {
   $('#recap-memory').textContent = formatBytes(system.hostMemoryUsedBytes || 0)
   $('#recap-month').textContent = new Intl.DateTimeFormat(window.I18n?.localeTag() || 'ru-RU', { month: 'long', year: 'numeric' }).format(new Date()).toUpperCase()
   $('#recap-note').textContent = $('#recap-note-input').value.trim() || tr('Private infrastructure')
-  $('#recap-version').textContent = `v${state.platform.version || state.me?.version || '0.5.0'}`
+  $('#recap-version').textContent = `v${state.platform.version || state.me?.version || '0.5.1'}`
   const card = $('#recap-card')
   card.className = `recap-card background-${state.recap.background}`
   card.style.setProperty('--recap-accent', state.recap.accent)
@@ -439,7 +439,7 @@ function drawRecapCanvas() {
   ctx.font = '600 25px system-ui, sans-serif'
   ctx.fillText(($('#recap-note-input').value.trim() || tr('Private infrastructure')).slice(0, 42), 76, 1137)
   ctx.textAlign = 'right'
-  ctx.fillText(`v${state.platform.version || state.me?.version || '0.5.0'}`, 884, 1137)
+  ctx.fillText(`v${state.platform.version || state.me?.version || '0.5.1'}`, 884, 1137)
   return canvas
 }
 
@@ -1151,7 +1151,7 @@ $('#proxy-form').addEventListener('submit', async event => {
     const result = await api('/api/proxies', { method: 'POST', body: JSON.stringify(payload) })
     $('#proxy-dialog').close()
     if (source === 'external') showToast('Внешний прокси добавлен и сохранён в зашифрованном виде')
-    else showSecret(form.get('protocol') === 'webproxy' ? 'Telegram WEB готов' : 'Прокси готов', form.get('protocol') === 'webproxy' ? 'Скопируйте ссылку — она сразу откроется в Telegram Desktop:' : 'Скопируйте готовую ссылку подключения. Она показывается только один раз:', result.proxyUrl || result.password)
+    else showSecret(form.get('protocol') === 'webproxy' ? 'Telegram WEB готов' : 'Прокси готов', form.get('protocol') === 'webproxy' ? 'Скопируйте ссылку — она сразу откроется в Telegram:' : 'Скопируйте готовую ссылку подключения. Она показывается только один раз:', result.proxyUrl || result.password)
     await refreshAll()
   } catch (error) { errorNode.textContent = error.message }
 })

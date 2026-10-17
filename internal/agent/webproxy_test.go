@@ -16,7 +16,7 @@ func TestRenderTelemtWebConfigSupportsMultipleSecrets(t *testing.T) {
 		`port = 8443`,
 		`host = "cdn.example.test"`,
 		`public_addr = "203.0.113.10:443"`,
-		`carrier = "https-lanes"`,
+		`carrier = "https"`,
 		`secret_mode = "dd"`,
 		`"proxy-a" = "11111111111111111111111111111111"`,
 		`"proxy-b" = "22222222222222222222222222222222"`,
@@ -30,5 +30,8 @@ func TestRenderTelemtWebConfigSupportsMultipleSecrets(t *testing.T) {
 	}
 	if strings.Count(config, "[[web.vhosts.profiles]]") != 2 {
 		t.Fatalf("expected one WEB profile per user:\n%s", config)
+	}
+	if strings.Contains(config, `carrier = "https-lanes"`) {
+		t.Fatalf("https-lanes requires public HTTP/2 and is not compatible with Telegram iOS:\n%s", config)
 	}
 }

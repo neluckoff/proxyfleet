@@ -85,7 +85,7 @@ func (w *webProxyRuntime) Apply(parent context.Context, port int, host, publicIP
 	cmd.Dir = w.dataDir
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
-	cmd.Env = append(os.Environ(), "RUST_LOG=warn")
+	cmd.Env = os.Environ()
 	if err := cmd.Start(); err != nil {
 		return fmt.Errorf("start Telemt WEB proxy: %w", err)
 	}
@@ -183,7 +183,7 @@ enabled = false
 
 [web]
 enabled = true
-carrier = "https-lanes"
+carrier = "https"
 decoy_fasttrack_mode = "off"
 http_connection_capacity_action = "drop"
 
