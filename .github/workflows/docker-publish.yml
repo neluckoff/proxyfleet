@@ -1,17 +1,94 @@
-name: Publish Docker image
+name: Publish release
 
 on:
   push:
-    tags:
-      - "v*"
+    branches: [master]
   workflow_dispatch:
 
 permissions:
   contents: read
 
+concurrency:
+  group: proxyfleet-release
+  cancel-in-progress: false
+
 jobs:
-  publish:
+  prepare:
     runs-on: ubuntu-latest
+    outputs:
+      publish: ${{ steps.version.outputs.publish }}
+      version: ${{ steps.version.outputs.version }}
+      tag: ${{ steps.version.outputs.tag }}
+    steps:
+      - name: Checkout repository and tags
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Validate version and check release tag
+        id: version
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          control_version="$(sed -nE 's/^const version = "([^"]+)"$/\1/p' internal/control/server.go)"
+          agent_version="$(sed -nE 's/^const agentVersion = "([^"]+)"$/\1/p' internal/agent/agent.go)"
+
+          if [[ ! "$control_version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Control-plane version is not valid semver: $control_version" >&2
+            exit 1
+          fi
+          if [[ "$agent_version" != "$control_version" ]]; then
+            echo "Version mismatch: control=$control_version agent=$agent_version" >&2
+            exit 1
+          fi
+
+          tag="v$control_version"
+          echo "version=$control_version" >> "$GITHUB_OUTPUT"
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+
+          if git rev-parse --quiet --verify "refs/tags/$tag" >/dev/null; then
+            echo "publish=false" >> "$GITHUB_OUTPUT"
+            echo "Release $tag already exists; nothing to publish." >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "publish=true" >> "$GITHUB_OUTPUT"
+            echo "Preparing ProxyFleet $tag." >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+  verify:
+    needs: prepare
+    if: needs.prepare.outputs.publish == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Test and validate
+        run: |
+          go test -race ./...
+          go vet ./...
+          test -z "$(gofmt -l .)"
+          node --check internal/control/web/app.js
+          node --check internal/control/web/i18n.js
+          node --check internal/control/web/service-worker.js
+
+  publish:
+    needs: [prepare, verify]
+    if: needs.prepare.outputs.publish == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -34,11 +111,12 @@ jobs:
         with:
           images: neluckoff/proxyfleet
           tags: |
-            type=semver,pattern={{version}}
-            type=semver,pattern={{major}}.{{minor}}
-            type=raw,value=latest,enable=${{ github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/v') }}
+            type=semver,pattern={{version}},value=${{ needs.prepare.outputs.tag }}
+            type=semver,pattern={{major}}.{{minor}},value=${{ needs.prepare.outputs.tag }}
+            type=raw,value=latest
 
-      - name: Build and push
+      - name: Build and push Docker image
+        id: build
         uses: docker/build-push-action@v7
         with:
           context: .
@@ -50,3 +128,34 @@ jobs:
           cache-to: type=gha,mode=max
           provenance: mode=max
           sbom: true
+
+      - name: Verify published image
+        env:
+          VERSION: ${{ needs.prepare.outputs.version }}
+        run: docker buildx imagetools inspect "neluckoff/proxyfleet:$VERSION"
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ needs.prepare.outputs.tag }}
+          VERSION: ${{ needs.prepare.outputs.version }}
+        run: |
+          gh release create "$TAG" \
+            --target "$GITHUB_SHA" \
+            --title "ProxyFleet $VERSION" \
+            --generate-notes \
+            --latest
+
+      - name: Write release summary
+        env:
+          TAG: ${{ needs.prepare.outputs.tag }}
+          VERSION: ${{ needs.prepare.outputs.version }}
+          DIGEST: ${{ steps.build.outputs.digest }}
+        run: |
+          {
+            echo "## ProxyFleet $TAG published"
+            echo
+            echo "- Docker image: \`neluckoff/proxyfleet:$VERSION\`"
+            echo "- Image digest: \`$DIGEST\`"
+            echo "- GitHub Release: https://github.com/${GITHUB_REPOSITORY}/releases/tag/$TAG"
+          } >> "$GITHUB_STEP_SUMMARY"

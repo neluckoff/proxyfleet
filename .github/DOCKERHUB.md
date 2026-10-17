@@ -76,5 +76,6 @@ For reproducible deployments, pin `PROXYFLEET_IMAGE` to an exact release such as
 - [Issue tracker](https://github.com/neluckoff/proxyfleet/issues)
 - [Security policy](https://github.com/neluckoff/proxyfleet/security/policy)
 - [Available tags](https://hub.docker.com/r/neluckoff/proxyfleet/tags)
+- [GitHub releases](https://github.com/neluckoff/proxyfleet/releases)
 
 > The project is under active development. Review release notes and back up the `proxyfleet-control-data` volume before production upgrades.

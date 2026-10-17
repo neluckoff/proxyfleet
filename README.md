@@ -402,21 +402,24 @@ All administrative routes except setup, login, and public branding require an au
 
 ## 🐳 Image publishing
 
-`.github/workflows/docker-publish.yml` publishes `linux/amd64` and `linux/arm64` images to Docker Hub.
+`.github/workflows/docker-publish.yml` automatically publishes a release when a new application version reaches `master`. The workflow verifies that the control plane and node agent use the same semantic version, runs the test suite, publishes `linux/amd64` and `linux/arm64` images to Docker Hub, verifies the resulting manifest, and only then creates the matching Git tag and GitHub Release with generated release notes.
 
 Required GitHub Actions secrets:
 
 - `DOCKERHUB_USERNAME` — Docker Hub username;
 - `DOCKERHUB_TOKEN` — access token with Read & Write permission.
 
-Version tags publish semantic aliases:
+To prepare a release, update both version constants before merging:
 
-```bash
-git tag v0.5.0
-git push origin v0.5.0
+```go
+// internal/control/server.go
+const version = "0.5.0"
+
+// internal/agent/agent.go
+const agentVersion = "0.5.0"
 ```
 
-This produces `:0.5.0`, `:0.5`, and `:latest`. Manual workflow runs update `:latest` only.
+If `v0.5.0` does not exist yet, the workflow produces Docker tags `:0.5.0`, `:0.5`, and `:latest`, then creates GitHub Release `v0.5.0`. If the Git tag already exists, the workflow exits without republishing anything. Manual workflow runs follow the same version and duplicate checks.
 
 ## 🙏 Third-party software
 
