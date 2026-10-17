@@ -8,16 +8,13 @@ services:
     image: ${PROXYFLEET_IMAGE:-neluckoff/proxyfleet:latest}
     restart: unless-stopped
     command: ["agent"]
+    network_mode: host
     environment:
       CONTROL_URL: ${CONTROL_URL:?CONTROL_URL is required}
       ENROLL_TOKEN: ${ENROLL_TOKEN:-}
       AGENT_STATE_PATH: /data/agent.json
     volumes:
       - node_data:/data
-    ports:
-      - "${HTTP_PROXY_PORT:-3128}:${HTTP_PROXY_PORT:-3128}"
-      - "${SOCKS_PROXY_PORT:-1080}:${SOCKS_PROXY_PORT:-1080}"
-      - "${MTPROTO_PROXY_PORT:-8443}:${MTPROTO_PROXY_PORT:-8443}"
     security_opt:
       - no-new-privileges:true
     cap_drop:

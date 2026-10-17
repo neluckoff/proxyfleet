@@ -28,7 +28,7 @@ func (s *server) createNode(w http.ResponseWriter, r *http.Request) {
 		AdvertisedHost string `json:"advertisedHost"`
 		HTTPPort       int    `json:"httpPort"`
 		SOCKSPort      int    `json:"socksPort"`
-		MTProtoPort    int    `json:"mtProtoPort"`
+		WebProxyPort   int    `json:"webProxyPort"`
 	}
 	if !decodeJSON(w, r, &input) {
 		return
@@ -44,11 +44,11 @@ func (s *server) createNode(w http.ResponseWriter, r *http.Request) {
 	if input.SOCKSPort == 0 {
 		input.SOCKSPort = 1080
 	}
-	if input.MTProtoPort == 0 {
-		input.MTProtoPort = 8443
+	if input.WebProxyPort == 0 {
+		input.WebProxyPort = 8443
 	}
-	if !validPort(input.HTTPPort) || !validPort(input.SOCKSPort) || !validPort(input.MTProtoPort) || !portsUnique(input.HTTPPort, input.SOCKSPort, input.MTProtoPort) {
-		writeError(w, http.StatusBadRequest, "Проверьте порты HTTP, SOCKS5 и MTProto — они должны отличаться")
+	if !validPort(input.HTTPPort) || !validPort(input.SOCKSPort) || !validPort(input.WebProxyPort) || !portsUnique(input.HTTPPort, input.SOCKSPort, input.WebProxyPort) {
+		writeError(w, http.StatusBadRequest, "Проверьте порты HTTP, SOCKS5 и WEB upstream — они должны отличаться")
 		return
 	}
 
@@ -56,7 +56,7 @@ func (s *server) createNode(w http.ResponseWriter, r *http.Request) {
 	token := randomToken(32)
 	node := &model.Node{
 		ID: id, Name: input.Name, Region: strings.TrimSpace(input.Region), AdvertisedHost: strings.TrimSpace(input.AdvertisedHost),
-		HTTPPort: input.HTTPPort, SOCKSPort: input.SOCKSPort, MTProtoPort: input.MTProtoPort, EnrollTokenHash: tokenHash(token), ConfigVersion: 1, CreatedAt: time.Now().UTC(),
+		HTTPPort: input.HTTPPort, SOCKSPort: input.SOCKSPort, WebProxyPort: input.WebProxyPort, EnrollTokenHash: tokenHash(token), ConfigVersion: 1, CreatedAt: time.Now().UTC(),
 	}
 	err := s.store.update(func(state *model.State) error {
 		state.Nodes = append(state.Nodes, node)
@@ -79,7 +79,7 @@ func (s *server) updateNode(w http.ResponseWriter, r *http.Request) {
 		AdvertisedHost      *string `json:"advertisedHost"`
 		HTTPPort            *int    `json:"httpPort"`
 		SOCKSPort           *int    `json:"socksPort"`
-		MTProtoPort         *int    `json:"mtProtoPort"`
+		WebProxyPort        *int    `json:"webProxyPort"`
 		AllowPrivateTargets *bool   `json:"allowPrivateTargets"`
 	}
 	if !decodeJSON(w, r, &input) {
@@ -112,13 +112,13 @@ func (s *server) updateNode(w http.ResponseWriter, r *http.Request) {
 			}
 			node.SOCKSPort = *input.SOCKSPort
 		}
-		if input.MTProtoPort != nil {
-			if !validPort(*input.MTProtoPort) {
-				return errors.New("invalid MTProto port")
+		if input.WebProxyPort != nil {
+			if !validPort(*input.WebProxyPort) {
+				return errors.New("invalid WEB proxy port")
 			}
-			node.MTProtoPort = *input.MTProtoPort
+			node.WebProxyPort = *input.WebProxyPort
 		}
-		if !portsUnique(node.HTTPPort, node.SOCKSPort, node.MTProtoPort) {
+		if !portsUnique(node.HTTPPort, node.SOCKSPort, node.WebProxyPort) {
 			return errors.New("ports must differ")
 		}
 		if input.AllowPrivateTargets != nil {
@@ -136,7 +136,7 @@ func (s *server) updateNode(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		message := "Не удалось обновить ноду: " + err.Error()
 		if strings.HasPrefix(err.Error(), "invalid ") || err.Error() == "ports must differ" {
-			message = "Проверьте порты HTTP, SOCKS5 и MTProto — допустимы значения 1024–65535, порты должны отличаться"
+			message = "Проверьте порты HTTP, SOCKS5 и WEB upstream — допустимы значения 1024–65535, порты должны отличаться"
 		}
 		writeError(w, http.StatusBadRequest, message)
 		return
@@ -225,7 +225,7 @@ func publicNode(node *model.Node) map[string]any {
 	}
 	return map[string]any{
 		"id": node.ID, "name": node.Name, "region": node.Region, "advertisedHost": node.AdvertisedHost,
-		"httpPort": node.HTTPPort, "socksPort": node.SOCKSPort, "mtProtoPort": node.MTProtoPort, "allowPrivateTargets": node.AllowPrivateTargets,
+		"httpPort": node.HTTPPort, "socksPort": node.SOCKSPort, "webProxyPort": node.WebProxyPort, "allowPrivateTargets": node.AllowPrivateTargets,
 		"configVersion": node.ConfigVersion, "createdAt": node.CreatedAt, "lastSeenAt": node.LastSeenAt,
 		"agentVersion": node.AgentVersion, "publicIp": node.PublicIP, "telegramOk": node.TelegramOK,
 		"telegramLatencyMs": node.TelegramLatencyMS, "lastError": node.LastError, "uptimeSeconds": node.UptimeSeconds,

@@ -18,7 +18,7 @@ import (
 	"github.com/neluckoff/proxyfleet/internal/model"
 )
 
-const agentVersion = "0.4.0"
+const agentVersion = "0.5.0"
 
 type persistedState struct {
 	NodeID     string            `json:"nodeId"`
@@ -142,7 +142,7 @@ func (r *runner) sync(ctx context.Context) error {
 		return err
 	}
 	r.lastSyncAt.Store(time.Now().Unix())
-	r.log.Info("proxy configuration applied", "version", config.Version, "httpPort", config.HTTPPort, "socksPort", config.SOCKSPort, "users", len(config.Users))
+	r.log.Info("proxy configuration applied", "version", config.Version, "httpPort", config.HTTPPort, "socksPort", config.SOCKSPort, "webProxyPort", config.WebProxyPort, "users", len(config.Users))
 	return nil
 }
 

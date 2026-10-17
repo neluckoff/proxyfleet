@@ -48,13 +48,17 @@ func (s *server) agentConfig(w http.ResponseWriter, _ *http.Request, node *model
 	for _, user := range state.Users {
 		if slices.Contains(user.NodeIDs, node.ID) {
 			agentUser := model.AgentUser{ID: user.ID, Username: user.Username, PasswordHash: user.PasswordHash, Protocol: user.Protocol, Enabled: user.Enabled}
-			if user.Protocol == "mtproto" {
-				agentUser.MTProtoSecret, _ = mtProtoSecret(&state, user)
+			if user.Protocol == "webproxy" {
+				agentUser.WebProxySecret, _ = webProxySecret(&state, user)
 			}
 			users = append(users, agentUser)
 		}
 	}
-	writeJSON(w, http.StatusOK, model.AgentConfig{Version: node.ConfigVersion, NodeName: node.Name, HTTPPort: node.HTTPPort, SOCKSPort: node.SOCKSPort, MTProtoPort: node.MTProtoPort, AllowPrivateTargets: node.AllowPrivateTargets, Users: users})
+	writeJSON(w, http.StatusOK, model.AgentConfig{
+		Version: node.ConfigVersion, NodeName: node.Name, HTTPPort: node.HTTPPort, SOCKSPort: node.SOCKSPort,
+		WebProxyPort: node.WebProxyPort, WebProxyHost: webProxyHost(node), WebProxyPublicIP: node.PublicIP,
+		AllowPrivateTargets: node.AllowPrivateTargets, Users: users,
+	})
 }
 
 func (s *server) agentHeartbeat(w http.ResponseWriter, r *http.Request, authenticated *model.Node) {
@@ -74,7 +78,15 @@ func (s *server) agentHeartbeat(w http.ResponseWriter, r *http.Request, authenti
 		trafficDown := counterDelta(node.BytesDown, beat.BytesDown)
 		node.LastSeenAt = time.Now().UTC()
 		node.AgentVersion = beat.AgentVersion
-		node.PublicIP = beat.PublicIP
+		if beat.PublicIP != "" && node.PublicIP != beat.PublicIP {
+			node.PublicIP = beat.PublicIP
+			for _, user := range state.Users {
+				if user.Protocol == "webproxy" && slices.Contains(user.NodeIDs, node.ID) {
+					node.ConfigVersion++
+					break
+				}
+			}
+		}
 		node.TelegramOK = beat.TelegramOK
 		node.TelegramLatencyMS = beat.TelegramLatencyMS
 		node.LastError = trimTo(beat.LastError, 300)

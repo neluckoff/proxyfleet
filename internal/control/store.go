@@ -40,16 +40,42 @@ func openStore(path string) (*store, error) {
 	if s.state.Users == nil {
 		s.state.Users = []*model.ProxyUser{}
 	}
+	migrated := false
 	for _, node := range s.state.Nodes {
-		if node.MTProtoPort == 0 {
-			node.MTProtoPort = 8443
+		if node.WebProxyPort == 0 {
+			if node.LegacyMTProtoPort != 0 {
+				node.WebProxyPort = node.LegacyMTProtoPort
+			} else {
+				node.WebProxyPort = 8443
+			}
+			migrated = true
+		}
+		if node.LegacyMTProtoPort != 0 {
+			node.LegacyMTProtoPort = 0
+			migrated = true
 		}
 	}
 	for _, user := range s.state.Users {
 		if user.Source == "" {
 			user.Source = "managed"
 		}
-		if user.Protocol != "http" && user.Protocol != "socks5" && user.Protocol != "mtproto" {
+		if user.Protocol == "mtproto" {
+			user.Protocol = "webproxy"
+			if user.WebProxySecretCiphertext == "" {
+				user.WebProxySecretCiphertext = user.LegacyMTProtoSecret
+			}
+			for _, nodeID := range user.NodeIDs {
+				if node := findNode(&s.state, nodeID); node != nil {
+					node.ConfigVersion++
+				}
+			}
+			migrated = true
+		}
+		if user.LegacyMTProtoSecret != "" {
+			user.LegacyMTProtoSecret = ""
+			migrated = true
+		}
+		if user.Protocol != "http" && user.Protocol != "socks5" && user.Protocol != "webproxy" {
 			// Legacy credentials predate the one-proxy/one-protocol model. Keep them
 			// usable through the HTTP listener instead of exposing two endpoints.
 			user.Protocol = "http"
@@ -71,6 +97,11 @@ func openStore(path string) (*store, error) {
 		for _, node := range s.state.Nodes {
 			s.state.TrafficBytesUp += node.BytesUp
 			s.state.TrafficBytesDown += node.BytesDown
+		}
+	}
+	if migrated {
+		if err := s.persistLocked(); err != nil {
+			return nil, err
 		}
 	}
 	return s, nil

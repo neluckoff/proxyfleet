@@ -1,4 +1,4 @@
-const CACHE_NAME = 'proxyfleet-shell-v2'
+const CACHE_NAME = 'proxyfleet-shell-v4'
 const APP_SHELL = [
   '/',
   '/styles.css',

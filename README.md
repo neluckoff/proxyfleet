@@ -5,7 +5,7 @@
 <h1 align="center">ProxyFleet</h1>
 
 <p align="center">
-  A self-hosted control plane for deploying and managing distributed HTTP, SOCKS5, and MTProto proxy nodes.
+  A self-hosted control plane for deploying and managing distributed HTTP, SOCKS5, and Telegram WEB proxy nodes.
 </p>
 
 <p align="center">
@@ -36,7 +36,7 @@ There is no required `.env` file. The owner account, password, public URL, sessi
 - multiple independent proxies on a single node;
 - authenticated HTTP proxy with `CONNECT` support;
 - authenticated SOCKS5 proxy;
-- MTProto proxy for Telegram with an independent encrypted secret per access;
+- Telegram WEB proxy over HTTPS/WSS with an independent encrypted secret per access;
 - one protocol per managed proxy, with generated connection URLs;
 - create, disable, move, and edit proxies without restarting containers;
 - encrypted storage and availability checks for third-party HTTP/SOCKS5 proxies;
@@ -47,6 +47,7 @@ There is no required `.env` file. The owner account, password, public URL, sessi
 - Telegram notifications with optional HTTP(S) proxy support;
 - installable PWA with per-device Web Push preferences;
 - configurable system name, logo, and owner password;
+- in-app update notices based on the latest published GitHub Release;
 - English and Russian interface;
 - responsive desktop and mobile navigation;
 - loopback, private, and link-local destination blocking by default;
@@ -67,7 +68,7 @@ ProxyFleet control plane
    ▼               ▼               ▼
 Agent / VPS 1      Agent / VPS 2      Agent / VPS N
 HTTP / SOCKS5 /    HTTP / SOCKS5 /    HTTP / SOCKS5 /
-MTProto            MTProto            MTProto
+Telegram WEB       Telegram WEB       Telegram WEB
 ```
 
 The control plane stores desired state. Agents initiate the connection to the panel, receive their configuration, and send heartbeat data back. Proxy nodes do not need a publicly exposed management port.
@@ -171,12 +172,61 @@ The generated command uses the same `neluckoff/proxyfleet:latest` image in agent
 For a managed proxy, choose:
 
 - a display name;
-- HTTP, SOCKS5, or MTProto;
+- HTTP, SOCKS5, or Telegram WEB;
 - the node that should serve it;
 - for HTTP/SOCKS5: a username and password, or let ProxyFleet generate the password;
-- for MTProto: no credentials are needed — ProxyFleet generates an encrypted secret and a ready-to-use Telegram link.
+- for Telegram WEB: no credentials are needed — ProxyFleet generates an encrypted secret and a ready-to-use `tg://webproxy` link.
 
-The complete connection URL is shown only after creation or credential rotation. Save it immediately: HTTP/SOCKS5 passwords are stored only as hashes, while MTProto secrets are encrypted at rest so they can be delivered securely to the assigned node.
+The complete connection URL is shown only after creation or credential rotation. Save it immediately: HTTP/SOCKS5 passwords are stored only as hashes, while Telegram WEB secrets are encrypted at rest so they can be delivered securely to the assigned node.
+
+### Telegram WEB proxy setup
+
+Telegram WEB proxy is an HTTPS/WSS transport and requires a dedicated DNS name resolving to the node's stable public IP. Public traffic always arrives on TCP `443`; ProxyFleet runs Telemt on a private loopback port (default `8443`) and your nginx or Caddy instance terminates TLS in front of it.
+
+1. Create an unproxied `A` record such as `cdn.example.com` pointing directly to the node (do not place a CDN/HTTP proxy in front of it).
+2. Enter that exact hostname as the node's **Public host** in ProxyFleet.
+3. Obtain a valid TLS certificate for the hostname.
+4. Forward HTTPS/WebSocket traffic from `:443` to the private Telemt listener:
+
+```nginx
+map $http_upgrade $telemt_connection_upgrade {
+    default upgrade;
+    ''      '';
+}
+
+upstream proxyfleet_telegram_web {
+    server 127.0.0.1:8443;
+    keepalive 64;
+}
+
+server {
+    listen 443 ssl;
+    http2 on;
+    server_name cdn.example.com;
+    access_log off;
+
+    ssl_certificate     /etc/letsencrypt/live/cdn.example.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/cdn.example.com/privkey.pem;
+    client_max_body_size 2m;
+
+    location / {
+        proxy_pass http://proxyfleet_telegram_web;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-For $remote_addr;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection $telemt_connection_upgrade;
+        proxy_connect_timeout 5s;
+        proxy_buffering off;
+        proxy_request_buffering off;
+        proxy_read_timeout 65s;
+        proxy_send_timeout 65s;
+        proxy_next_upstream off;
+    }
+}
+```
+
+Do not expose port `8443`: it intentionally listens on `127.0.0.1`. The generated client link contains only the hostname and secret, for example `tg://webproxy?server=cdn.example.com&secret=dd…`. Telegram Desktop supports WEB proxies; support in other Telegram clients may differ. See the upstream [Telemt WEB deployment guide](https://github.com/telemt/telemt/blob/main/docs/WEB/WEB_PROXY.en.md) for the complete transport contract and operational checks.
 
 ### Third-party proxies
 
@@ -191,15 +241,15 @@ The URL is encrypted before it reaches `state.json`; passwords stay masked in th
 
 ## 🔥 Firewall
 
-Expose proxy ports only to trusted clients:
+Expose direct HTTP/SOCKS5 ports only to trusted clients. Telegram WEB needs public HTTPS on `443`, while its private upstream stays closed:
 
 ```bash
 sudo ufw allow from <CLIENT_IP> to any port 3128 proto tcp
 sudo ufw allow from <CLIENT_IP> to any port 1080 proto tcp
-sudo ufw allow from <CLIENT_IP> to any port 8443 proto tcp
+sudo ufw allow 443/tcp
 ```
 
-Do not expose proxy ports to the whole internet, even when authentication is enabled.
+Do not expose direct HTTP/SOCKS5 or the Telegram WEB upstream port to the whole internet, even when authentication is enabled.
 
 ## 🔔 Notifications and PWA
 
@@ -230,20 +280,20 @@ docker image prune -f
 
 This recreates the container with the newest `neluckoff/proxyfleet:latest` image while preserving `proxyfleet-control-data`.
 
-For reproducible production deployments, pin `PROXYFLEET_IMAGE` to an exact release such as `neluckoff/proxyfleet:0.4.0` or to an immutable image digest from [Docker Hub Tags](https://hub.docker.com/r/neluckoff/proxyfleet/tags).
+For reproducible production deployments, pin `PROXYFLEET_IMAGE` to an exact release such as `neluckoff/proxyfleet:0.5.0` or to an immutable image digest from [Docker Hub Tags](https://hub.docker.com/r/neluckoff/proxyfleet/tags).
 
 Update a standalone node installed with the generated `docker run` command:
 
 ```bash
-docker pull neluckoff/proxyfleet:0.4.0
+docker pull neluckoff/proxyfleet:0.5.0
 docker rm -f proxyfleet-node
 docker run -d --name proxyfleet-node --restart unless-stopped --network host \
   -v proxyfleet_node_data:/data \
   -e CONTROL_URL=https://proxy.example.com \
-  neluckoff/proxyfleet:0.4.0 agent
+  neluckoff/proxyfleet:0.5.0 agent
 ```
 
-Replace `CONTROL_URL` with your panel URL. The existing `proxyfleet_node_data` volume contains the enrolled agent credential, so no new enrollment token is needed. MTProto support requires both the control plane and node agents to run version `0.4.0` or newer.
+Replace `CONTROL_URL` with your panel URL. The existing `proxyfleet_node_data` volume contains the enrolled agent credential, so no new enrollment token is needed. Telegram WEB support requires both the control plane and node agents to run version `0.5.0` or newer.
 
 ### GitHub source installation
 
@@ -291,15 +341,12 @@ docker compose up -d --no-build
 | `AGENT_STATE_PATH` | agent | `/data/agent.json` | Persistent agent state |
 | `AGENT_HEALTH_SOCKET` | agent | `/tmp/proxyfleet-agent-health.sock` | Internal Unix socket used by Docker health checks |
 | `HEALTHCHECK_URL` | control plane | `http://127.0.0.1:8080/health` | Override for the built-in control-plane health check |
-| `HTTP_PROXY_PORT` | node Compose | `3128` | Public HTTP proxy port |
-| `SOCKS_PROXY_PORT` | node Compose | `1080` | Public SOCKS5 proxy port |
-| `MTPROTO_PROXY_PORT` | node Compose | `8443` | Public MTProto proxy port |
-| `TELEMT_BINARY` | agent | `/usr/local/bin/telemt` | Telemt executable used for MTProto |
-| `MTPROTO_DATA_DIR` | agent | `/data/mtproto` | Generated Telemt configuration directory |
+| `TELEMT_BINARY` | agent | `/usr/local/bin/telemt` | Telemt executable used for Telegram WEB |
+| `WEB_PROXY_DATA_DIR` | agent | `/data/webproxy` | Generated Telemt WEB configuration and decoy directory |
 
 ### Container health
 
-The published image includes a mode-aware Docker health check. For the control plane it calls the local `/health` endpoint. For an agent it verifies that both proxy listeners are running and that its control-plane configuration has been synchronized recently.
+The published image includes a mode-aware Docker health check. For the control plane it calls the local `/health` endpoint. For an agent it verifies the HTTP/SOCKS5 listeners, the Telegram WEB runtime when configured, and a recent control-plane synchronization.
 
 ```bash
 docker inspect --format '{{.State.Health.Status}}' proxyfleet-control
@@ -365,15 +412,15 @@ Required GitHub Actions secrets:
 Version tags publish semantic aliases:
 
 ```bash
-git tag v0.4.0
-git push origin v0.4.0
+git tag v0.5.0
+git push origin v0.5.0
 ```
 
-This produces `:0.4.0`, `:0.4`, and `:latest`. Manual workflow runs update `:latest` only.
+This produces `:0.5.0`, `:0.5`, and `:latest`. Manual workflow runs update `:latest` only.
 
 ## 🙏 Third-party software
 
-MTProto service on proxy nodes is provided by [Telemt](https://github.com/telemt/telemt), pinned to version `3.5.14` in the Docker build. The published image contains Telemt's license at `/usr/share/licenses/telemt/LICENSE`. ProxyFleet is not affiliated with or endorsed by Telegram or the Telemt project.
+Telegram WEB service on proxy nodes is provided by [Telemt](https://github.com/telemt/telemt), pinned to version `3.5.14` in the Docker build. The published image contains Telemt's license at `/usr/share/licenses/telemt/LICENSE`. ProxyFleet is not affiliated with or endorsed by Telegram or the Telemt project.
 
 ## 🤝 Contributing
 

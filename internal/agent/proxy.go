@@ -45,17 +45,17 @@ type proxyRuntime struct {
 	active     atomic.Int64
 	up         atomic.Int64
 	down       atomic.Int64
-	mtproto    *mtProtoRuntime
+	webproxy   *webProxyRuntime
 }
 
 func newProxyRuntime(log *slog.Logger) *proxyRuntime {
-	p := &proxyRuntime{log: log, mtproto: newMTProtoRuntime(log)}
+	p := &proxyRuntime{log: log, webproxy: newWebProxyRuntime(log)}
 	p.httpUsers.Store(map[string]string{})
 	p.socksUsers.Store(map[string]string{})
 	return p
 }
 
-func (p *proxyRuntime) Running() bool { return p.running.Load() && p.mtproto.Ready() }
+func (p *proxyRuntime) Running() bool { return p.running.Load() && p.webproxy.Ready() }
 
 func (p *proxyRuntime) Stats() proxyStats {
 	return proxyStats{Active: p.active.Load(), Up: p.up.Load(), Down: p.down.Load()}
@@ -66,13 +66,13 @@ func (p *proxyRuntime) Apply(parent context.Context, config model.AgentConfig) e
 	defer p.mu.Unlock()
 
 	httpUsers, socksUsers := splitCredentials(config.Users)
-	mtprotoUsers := splitMTProtoUsers(config.Users)
+	webProxyUsers := splitWebProxyUsers(config.Users)
 	p.httpUsers.Store(httpUsers)
 	p.socksUsers.Store(socksUsers)
 	p.allowLocal.Store(config.AllowPrivateTargets)
 
 	if p.running.Load() && p.httpPort == config.HTTPPort && p.socksPort == config.SOCKSPort {
-		return p.mtproto.Apply(parent, config.MTProtoPort, mtprotoUsers)
+		return p.webproxy.Apply(parent, config.WebProxyPort, config.WebProxyHost, config.WebProxyPublicIP, webProxyUsers)
 	}
 	p.closeLocked()
 
@@ -101,7 +101,7 @@ func (p *proxyRuntime) Apply(parent context.Context, config model.AgentConfig) e
 		}
 	}()
 	go p.serveSOCKS(ctx, socksLn)
-	if err := p.mtproto.Apply(parent, config.MTProtoPort, mtprotoUsers); err != nil {
+	if err := p.webproxy.Apply(parent, config.WebProxyPort, config.WebProxyHost, config.WebProxyPublicIP, webProxyUsers); err != nil {
 		return err
 	}
 	return nil
@@ -114,7 +114,7 @@ func (p *proxyRuntime) Close() {
 }
 
 func (p *proxyRuntime) closeLocked() {
-	p.mtproto.Close()
+	p.webproxy.Close()
 	p.running.Store(false)
 	if p.cancel != nil {
 		p.cancel()
@@ -136,11 +136,11 @@ func (p *proxyRuntime) closeLocked() {
 	p.socksLn = nil
 }
 
-func splitMTProtoUsers(users []model.AgentUser) map[string]string {
+func splitWebProxyUsers(users []model.AgentUser) map[string]string {
 	result := make(map[string]string)
 	for _, user := range users {
-		if user.Enabled && user.Protocol == "mtproto" && len(user.MTProtoSecret) == 32 {
-			result[user.ID] = user.MTProtoSecret
+		if user.Enabled && user.Protocol == "webproxy" && len(user.WebProxySecret) == 32 {
+			result[user.ID] = user.WebProxySecret
 		}
 	}
 	return result
@@ -158,7 +158,7 @@ func splitCredentials(users []model.AgentUser) (map[string]string, map[string]st
 			httpUsers[user.Username] = user.PasswordHash
 		case "socks5":
 			socksUsers[user.Username] = user.PasswordHash
-		case "mtproto":
+		case "webproxy":
 			continue
 		default: // Backwards compatibility for credentials created before protocol selection.
 			httpUsers[user.Username] = user.PasswordHash
