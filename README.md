@@ -5,7 +5,7 @@
 <h1 align="center">ProxyFleet</h1>
 
 <p align="center">
-  A self-hosted control plane for deploying and managing distributed HTTP, SOCKS5, and Telegram WEB proxy nodes.
+  A self-hosted control plane for deploying and managing distributed HTTP and SOCKS5 proxy nodes.
 </p>
 
 <p align="center">
@@ -36,7 +36,6 @@ There is no required `.env` file. The owner account, password, public URL, sessi
 - multiple independent proxies on a single node;
 - authenticated HTTP proxy with `CONNECT` support;
 - authenticated SOCKS5 proxy;
-- Telegram WEB proxy over HTTPS/WSS with an independent encrypted secret per access;
 - one protocol per managed proxy, with generated connection URLs;
 - create, disable, move, and edit proxies without restarting containers;
 - encrypted storage and availability checks for third-party HTTP/SOCKS5 proxies;
@@ -67,8 +66,7 @@ ProxyFleet control plane
    ├───────────────┬───────────────┐
    ▼               ▼               ▼
 Agent / VPS 1      Agent / VPS 2      Agent / VPS N
-HTTP / SOCKS5 /    HTTP / SOCKS5 /    HTTP / SOCKS5 /
-Telegram WEB       Telegram WEB       Telegram WEB
+HTTP / SOCKS5      HTTP / SOCKS5      HTTP / SOCKS5
 ```
 
 The control plane stores desired state. Agents initiate the connection to the panel, receive their configuration, and send heartbeat data back. Proxy nodes do not need a publicly exposed management port.
@@ -172,78 +170,11 @@ The generated command uses the same `neluckoff/proxyfleet:latest` image in agent
 For a managed proxy, choose:
 
 - a display name;
-- HTTP, SOCKS5, or Telegram WEB;
+- HTTP or SOCKS5;
 - the node that should serve it;
-- for HTTP/SOCKS5: a username and password, or let ProxyFleet generate the password;
-- for Telegram WEB: no credentials are needed — ProxyFleet generates an encrypted secret and a ready-to-use `tg://webproxy` link.
+- a username and password, or let ProxyFleet generate the password.
 
-The complete connection URL is shown only after creation or credential rotation. Save it immediately: HTTP/SOCKS5 passwords are stored only as hashes, while Telegram WEB secrets are encrypted at rest so they can be delivered securely to the assigned node.
-
-### Telegram WEB proxy setup
-
-Telegram WEB proxy is an HTTPS/WSS transport and requires a dedicated DNS name resolving to the node's stable public IP. Public traffic always arrives on TCP `443`; ProxyFleet runs [tgwebproxy](https://github.com/kesevone/tgwebproxy) on a private loopback port (default `8443`) and your nginx or Caddy instance terminates TLS in front of it.
-
-1. Create an unproxied `A` record such as `cdn.example.com` pointing directly to the node (do not place a CDN/HTTP proxy in front of it).
-2. Enter that exact hostname as the node's **Public host** in ProxyFleet.
-3. Obtain a valid TLS certificate for the hostname.
-4. Forward HTTPS/WebSocket traffic from `:443` to the private tgwebproxy listener:
-
-```nginx
-map $http_upgrade $tgwebproxy_connection_upgrade {
-    default upgrade;
-    ''      '';
-}
-
-upstream proxyfleet_telegram_web {
-    server 127.0.0.1:8443;
-    keepalive 64;
-}
-
-server {
-    listen 443 ssl;
-    http2 on;
-    server_name cdn.example.com;
-    access_log off;
-
-    ssl_certificate     /etc/letsencrypt/live/cdn.example.com/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/cdn.example.com/privkey.pem;
-    client_max_body_size 2m;
-
-    location / {
-        proxy_pass http://proxyfleet_telegram_web;
-        proxy_http_version 1.1;
-        proxy_set_header Host $host;
-        proxy_set_header X-Forwarded-For $remote_addr;
-        proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection $tgwebproxy_connection_upgrade;
-        proxy_connect_timeout 5s;
-        proxy_buffering off;
-        proxy_request_buffering off;
-        proxy_read_timeout 65s;
-        proxy_send_timeout 65s;
-        proxy_next_upstream off;
-    }
-}
-```
-
-Do not expose port `8443`: it intentionally listens on `127.0.0.1`. The generated client link contains only the hostname and secret, for example `tg://webproxy?server=cdn.example.com&secret=dd…`. tgwebproxy first uses WebSocket and automatically falls back to ordinary HTTPS long polling when WebSocket transport is unavailable.
-
-WEB proxy support is currently proven in compatible Telegram Desktop builds. Android support is experimental and iOS support depends on the client version, so a server that passes every check can still remain on “Connecting” in a client without the WEB transport. HTTP and SOCKS5 remain the compatible choices for such clients.
-
-To verify the entire public deployment — TLS, bridge authorization, WebSocket/HTTPS carrier and a real Telegram `req_pq_multi` exchange — run the bundled probe inside the node container, replacing the placeholders with the hostname and the secret displayed by ProxyFleet:
-
-```bash
-docker exec proxyfleet-node tgwebproxy-probe \
-  -domain cdn.example.com \
-  -secret dd0123456789abcdef0123456789abcdef
-```
-
-The probe must finish successfully. If the cover page works but the probe fails, inspect the nginx virtual host and node logs before testing the link in Telegram:
-
-```bash
-docker logs --tail 200 proxyfleet-node
-curl -I https://cdn.example.com
-```
+The complete connection URL is shown only after creation or credential rotation. Save it immediately: managed proxy passwords are stored only as hashes.
 
 ### Third-party proxies
 
@@ -258,15 +189,14 @@ The URL is encrypted before it reaches `state.json`; passwords stay masked in th
 
 ## 🔥 Firewall
 
-Expose direct HTTP/SOCKS5 ports only to trusted clients. Telegram WEB needs public HTTPS on `443`, while its private upstream stays closed:
+Expose HTTP/SOCKS5 ports only to trusted clients:
 
 ```bash
 sudo ufw allow from <CLIENT_IP> to any port 3128 proto tcp
 sudo ufw allow from <CLIENT_IP> to any port 1080 proto tcp
-sudo ufw allow 443/tcp
 ```
 
-Do not expose direct HTTP/SOCKS5 or the Telegram WEB upstream port to the whole internet, even when authentication is enabled.
+Do not expose HTTP/SOCKS5 ports to the whole internet, even when authentication is enabled.
 
 ## 🔔 Notifications and PWA
 
@@ -297,20 +227,20 @@ docker image prune -f
 
 This recreates the container with the newest `neluckoff/proxyfleet:latest` image while preserving `proxyfleet-control-data`.
 
-For reproducible production deployments, pin `PROXYFLEET_IMAGE` to an exact release such as `neluckoff/proxyfleet:0.5.2` or to an immutable image digest from [Docker Hub Tags](https://hub.docker.com/r/neluckoff/proxyfleet/tags).
+For reproducible production deployments, pin `PROXYFLEET_IMAGE` to an exact release such as `neluckoff/proxyfleet:0.5.3` or to an immutable image digest from [Docker Hub Tags](https://hub.docker.com/r/neluckoff/proxyfleet/tags).
 
 Update a standalone node installed with the generated `docker run` command:
 
 ```bash
-docker pull neluckoff/proxyfleet:0.5.2
+docker pull neluckoff/proxyfleet:0.5.3
 docker rm -f proxyfleet-node
 docker run -d --name proxyfleet-node --restart unless-stopped --network host \
   -v proxyfleet_node_data:/data \
   -e CONTROL_URL=https://proxy.example.com \
-  neluckoff/proxyfleet:0.5.2 agent
+  neluckoff/proxyfleet:0.5.3 agent
 ```
 
-Replace `CONTROL_URL` with your panel URL. The existing `proxyfleet_node_data` volume contains the enrolled agent credential, so no new enrollment token is needed. The tgwebproxy-based Telegram WEB runtime requires both the control plane and node agents to run version `0.5.2` or newer.
+Replace `CONTROL_URL` with your panel URL. The existing `proxyfleet_node_data` volume contains the enrolled agent credential, so no new enrollment token is needed.
 
 ### GitHub source installation
 
@@ -358,12 +288,10 @@ docker compose up -d --no-build
 | `AGENT_STATE_PATH` | agent | `/data/agent.json` | Persistent agent state |
 | `AGENT_HEALTH_SOCKET` | agent | `/tmp/proxyfleet-agent-health.sock` | Internal Unix socket used by Docker health checks |
 | `HEALTHCHECK_URL` | control plane | `http://127.0.0.1:8080/health` | Override for the built-in control-plane health check |
-| `TGWEBPROXY_BINARY` | agent | `/usr/local/bin/tgwebproxy` | tgwebproxy executable used for Telegram WEB |
-| `WEB_PROXY_DATA_DIR` | agent | `/data/webproxy` | Generated tgwebproxy configuration, admin socket, and cover directory |
 
 ### Container health
 
-The published image includes a mode-aware Docker health check. For the control plane it calls the local `/health` endpoint. For an agent it verifies the HTTP/SOCKS5 listeners, the Telegram WEB runtime when configured, and a recent control-plane synchronization.
+The published image includes a mode-aware Docker health check. For the control plane it calls the local `/health` endpoint. For an agent it verifies the HTTP/SOCKS5 listeners and a recent control-plane synchronization.
 
 ```bash
 docker inspect --format '{{.State.Health.Status}}' proxyfleet-control
@@ -430,17 +358,13 @@ To prepare a release, update both version constants before merging:
 
 ```go
 // internal/control/server.go
-const version = "0.5.2"
+const version = "0.5.3"
 
 // internal/agent/agent.go
-const agentVersion = "0.5.2"
+const agentVersion = "0.5.3"
 ```
 
-If `v0.5.2` does not exist yet, the workflow produces Docker tags `:0.5.2`, `:0.5`, and `:latest`, then creates GitHub Release `v0.5.2`. If the Git tag already exists, the workflow exits without republishing anything. Manual workflow runs follow the same version and duplicate checks.
-
-## 🙏 Third-party software
-
-Telegram WEB service on proxy nodes is provided by [kesevone/tgwebproxy](https://github.com/kesevone/tgwebproxy), pinned to commit `44aa88ac176ee89a9bf8cdf1b76227d8c653f2a1` and verified by source archive checksum during the Docker build. The published image contains its MIT license at `/usr/share/licenses/tgwebproxy/LICENSE`. ProxyFleet is not affiliated with or endorsed by Telegram or the tgwebproxy project.
+If `v0.5.3` does not exist yet, the workflow produces Docker tags `:0.5.3`, `:0.5`, and `:latest`, then creates GitHub Release `v0.5.3`. If the Git tag already exists, the workflow exits without republishing anything. Manual workflow runs follow the same version and duplicate checks.
 
 ## 🤝 Contributing
 

@@ -56,16 +56,13 @@ func (s *server) createUser(w http.ResponseWriter, r *http.Request) {
 	}
 	if input.Name == "" {
 		input.Name = input.Username
-		if input.Protocol == "webproxy" {
-			input.Name = "Telegram WEB proxy"
-		}
 	}
-	if input.Protocol != "webproxy" && !proxyUsernamePattern.MatchString(input.Username) {
+	if !proxyUsernamePattern.MatchString(input.Username) {
 		writeError(w, http.StatusBadRequest, "Логин должен содержать 3–64 латинских символа, цифры, точку, дефис или подчёркивание")
 		return
 	}
 	if !validProxyProtocol(input.Protocol) {
-		writeError(w, http.StatusBadRequest, "Выберите протокол HTTP, SOCKS5 или Telegram WEB")
+		writeError(w, http.StatusBadRequest, "Выберите протокол HTTP или SOCKS5")
 		return
 	}
 	if input.NodeID == "" {
@@ -73,27 +70,17 @@ func (s *server) createUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	id := randomHex(8)
-	secret := ""
-	if input.Protocol == "webproxy" {
-		input.Username = "webproxy_" + id
-		secret = randomHex(16)
-		input.Password = ""
-	} else {
-		if input.Password == "" {
-			input.Password = randomToken(18)
-		}
-		if len(input.Password) < 12 {
-			writeError(w, http.StatusBadRequest, "Пароль должен содержать не менее 12 символов")
-			return
-		}
+	if input.Password == "" {
+		input.Password = randomToken(18)
 	}
-	user := &model.ProxyUser{ID: id, Name: input.Name, Username: input.Username, Protocol: input.Protocol, Source: "managed", NodeIDs: []string{input.NodeID}, Enabled: true, CreatedAt: time.Now().UTC()}
-	if input.Protocol != "webproxy" {
-		user.PasswordHash = credentialHash(input.Username, input.Password)
+	if len(input.Password) < 12 {
+		writeError(w, http.StatusBadRequest, "Пароль должен содержать не менее 12 символов")
+		return
 	}
+	user := &model.ProxyUser{ID: id, Name: input.Name, Username: input.Username, PasswordHash: credentialHash(input.Username, input.Password), Protocol: input.Protocol, Source: "managed", NodeIDs: []string{input.NodeID}, Enabled: true, CreatedAt: time.Now().UTC()}
 	err := s.store.update(func(state *model.State) error {
 		for _, existing := range state.Users {
-			if input.Protocol != "webproxy" && proxySource(existing) == "managed" && existing.Protocol != "webproxy" && strings.EqualFold(existing.Username, user.Username) {
+			if proxySource(existing) == "managed" && strings.EqualFold(existing.Username, user.Username) {
 				return errors.New("login exists")
 			}
 		}
@@ -103,25 +90,6 @@ func (s *server) createUser(w http.ResponseWriter, r *http.Request) {
 		}
 		if proxyHost(node) == "" {
 			return errors.New("node has no public address")
-		}
-		if input.Protocol == "webproxy" {
-			if !validWebProxyHost(webProxyHost(node)) {
-				return errors.New("node has no WEB proxy hostname")
-			}
-			if net.ParseIP(strings.TrimSpace(node.PublicIP)) == nil {
-				return errors.New("node public IP is unavailable")
-			}
-			if state.Settings == nil {
-				return errors.New("settings are missing")
-			}
-			if state.Settings.DataEncryptionKey == "" {
-				state.Settings.DataEncryptionKey = randomToken(32)
-			}
-			ciphertext, encryptErr := encryptStoredValue(state.Settings.DataEncryptionKey, secret)
-			if encryptErr != nil {
-				return encryptErr
-			}
-			user.WebProxySecretCiphertext = ciphertext
 		}
 		state.Users = append(state.Users, user)
 		bumpNodes(state, user.NodeIDs)
@@ -134,10 +102,6 @@ func (s *server) createUser(w http.ResponseWriter, r *http.Request) {
 			message = "Прокси с таким логином уже существует"
 		} else if err.Error() == "node has no public address" {
 			message = "У выбранной ноды нет публичного адреса"
-		} else if err.Error() == "node has no WEB proxy hostname" {
-			message = "Для Telegram WEB укажите отдельный домен в публичном адресе ноды"
-		} else if err.Error() == "node public IP is unavailable" {
-			message = "Публичный IP ноды ещё не определён — дождитесь подключения агента"
 		}
 		writeError(w, http.StatusBadRequest, message)
 		return
@@ -145,17 +109,7 @@ func (s *server) createUser(w http.ResponseWriter, r *http.Request) {
 	state := s.store.snapshot()
 	result := publicProxy(&state, user)
 	s.notifyCategory("proxies", "Создан прокси: "+user.Name)
-	credential := input.Password
-	if input.Protocol == "webproxy" {
-		credential = secret
-	}
-	response := map[string]any{"proxy": result, "user": result, "proxyUrl": connectionURL(&state, user, credential)}
-	if input.Protocol == "webproxy" {
-		response["secret"] = webProxyClientSecret(secret)
-		response["tgUrl"] = webProxyTGURL(&state, user, secret)
-	} else {
-		response["password"] = input.Password
-	}
+	response := map[string]any{"proxy": result, "user": result, "proxyUrl": connectionURL(&state, user, input.Password), "password": input.Password}
 	writeJSON(w, http.StatusCreated, response)
 }
 
@@ -264,11 +218,6 @@ func (s *server) updateUser(w http.ResponseWriter, r *http.Request) {
 				if !validProxyProtocol(protocol) {
 					return errors.New("unknown protocol")
 				}
-				if protocol == "webproxy" || user.Protocol == "webproxy" {
-					if protocol != user.Protocol {
-						return errors.New("webproxy conversion is not supported")
-					}
-				}
 				user.Protocol = protocol
 			}
 			if input.NodeID != nil {
@@ -280,14 +229,6 @@ func (s *server) updateUser(w http.ResponseWriter, r *http.Request) {
 				if proxyHost(node) == "" {
 					return errors.New("node has no public address")
 				}
-				if user.Protocol == "webproxy" {
-					if !validWebProxyHost(webProxyHost(node)) {
-						return errors.New("node has no WEB proxy hostname")
-					}
-					if net.ParseIP(strings.TrimSpace(node.PublicIP)) == nil {
-						return errors.New("node public IP is unavailable")
-					}
-				}
 				user.NodeIDs = []string{nodeID}
 			} else if input.NodeIDs != nil {
 				nodes := uniqueStrings(*input.NodeIDs)
@@ -296,20 +237,7 @@ func (s *server) updateUser(w http.ResponseWriter, r *http.Request) {
 				}
 				user.NodeIDs = []string{nodes[0]}
 			}
-			if input.Password != nil && user.Protocol == "webproxy" {
-				revealedPassword = randomHex(16)
-				if state.Settings == nil {
-					return errors.New("settings are missing")
-				}
-				if state.Settings.DataEncryptionKey == "" {
-					state.Settings.DataEncryptionKey = randomToken(32)
-				}
-				ciphertext, encryptErr := encryptStoredValue(state.Settings.DataEncryptionKey, revealedPassword)
-				if encryptErr != nil {
-					return encryptErr
-				}
-				user.WebProxySecretCiphertext = ciphertext
-			} else if input.Password != nil {
+			if input.Password != nil {
 				revealedPassword = *input.Password
 				if revealedPassword == "" {
 					revealedPassword = randomToken(18)
@@ -334,12 +262,6 @@ func (s *server) updateUser(w http.ResponseWriter, r *http.Request) {
 		message := "Не удалось обновить прокси: " + err.Error()
 		if err.Error() == "node has no public address" {
 			message = "У выбранной ноды нет публичного адреса"
-		} else if err.Error() == "node has no WEB proxy hostname" {
-			message = "Для Telegram WEB укажите отдельный домен в публичном адресе ноды"
-		} else if err.Error() == "node public IP is unavailable" {
-			message = "Публичный IP ноды ещё не определён — дождитесь подключения агента"
-		} else if err.Error() == "webproxy conversion is not supported" {
-			message = "Нельзя преобразовать Telegram WEB в HTTP или SOCKS5 — создайте отдельный прокси"
 		}
 		writeError(w, http.StatusBadRequest, message)
 		return
@@ -349,12 +271,7 @@ func (s *server) updateUser(w http.ResponseWriter, r *http.Request) {
 	s.notifyCategory("proxies", "Обновлён прокси: "+result.Name)
 	response := map[string]any{"proxy": public, "user": public}
 	if revealedPassword != "" {
-		if result.Protocol == "webproxy" {
-			response["secret"] = webProxyClientSecret(revealedPassword)
-			response["tgUrl"] = webProxyTGURL(&state, result, revealedPassword)
-		} else {
-			response["password"] = revealedPassword
-		}
+		response["password"] = revealedPassword
 		response["proxyUrl"] = connectionURL(&state, result, revealedPassword)
 	}
 	writeJSON(w, http.StatusOK, response)
@@ -466,7 +383,7 @@ func (s *server) deleteUser(w http.ResponseWriter, r *http.Request) {
 }
 
 func validProxyProtocol(protocol string) bool {
-	return protocol == "http" || protocol == "socks5" || protocol == "webproxy"
+	return protocol == "http" || protocol == "socks5"
 }
 
 func proxySource(user *model.ProxyUser) string {
@@ -497,7 +414,7 @@ func publicProxy(state *model.State, user *model.ProxyUser) map[string]any {
 		return map[string]any{}
 	}
 	protocol := user.Protocol
-	if protocol != "http" && protocol != "socks5" && protocol != "webproxy" {
+	if protocol != "http" && protocol != "socks5" {
 		protocol = "http"
 	}
 	source := proxySource(user)
@@ -546,9 +463,7 @@ func publicProxy(state *model.State, user *model.ProxyUser) map[string]any {
 				}
 			}
 		}
-		if endpoint != "" && protocol == "webproxy" {
-			maskedURL = fmt.Sprintf("tg://webproxy?server=%s&secret=••••", url.QueryEscape(host))
-		} else if endpoint != "" {
+		if endpoint != "" {
 			maskedURL = fmt.Sprintf("%s://%s:••••@%s", proxyScheme(protocol), url.User(user.Username).String(), endpoint)
 		}
 	}
@@ -619,9 +534,6 @@ func connectionURL(state *model.State, user *model.ProxyUser, password string) s
 	if host == "" || port == 0 {
 		return ""
 	}
-	if user.Protocol == "webproxy" {
-		return fmt.Sprintf("tg://webproxy?server=%s&secret=%s", url.QueryEscape(host), url.QueryEscape(webProxyClientSecret(password)))
-	}
 	return (&url.URL{
 		Scheme: proxyScheme(user.Protocol),
 		User:   url.UserPassword(user.Username, password),
@@ -639,9 +551,6 @@ func proxyHost(node *model.Node) string {
 }
 
 func proxyPort(node *model.Node, protocol string) int {
-	if protocol == "webproxy" {
-		return 443
-	}
 	if protocol == "socks5" {
 		return node.SOCKSPort
 	}
@@ -653,55 +562,6 @@ func proxyScheme(protocol string) string {
 		return "socks5"
 	}
 	return "http"
-}
-
-func webProxySecret(state *model.State, user *model.ProxyUser) (string, error) {
-	if state == nil || state.Settings == nil || user == nil || user.WebProxySecretCiphertext == "" {
-		return "", errors.New("WEB proxy secret is unavailable")
-	}
-	return decryptStoredValue(state.Settings.DataEncryptionKey, user.WebProxySecretCiphertext)
-}
-
-func webProxyClientSecret(secret string) string {
-	secret = strings.TrimSpace(secret)
-	if strings.HasPrefix(secret, "dd") {
-		return secret
-	}
-	return "dd" + secret
-}
-
-func webProxyTGURL(state *model.State, user *model.ProxyUser, secret string) string {
-	node := findNode(state, firstNodeID(user))
-	if node == nil || !validWebProxyHost(webProxyHost(node)) {
-		return ""
-	}
-	return fmt.Sprintf("tg://webproxy?server=%s&secret=%s", url.QueryEscape(webProxyHost(node)), url.QueryEscape(webProxyClientSecret(secret)))
-}
-
-func webProxyHost(node *model.Node) string {
-	if node == nil {
-		return ""
-	}
-	host := strings.ToLower(strings.TrimSpace(node.AdvertisedHost))
-	host = strings.TrimPrefix(strings.TrimPrefix(host, "https://"), "http://")
-	return strings.Trim(host, "/")
-}
-
-func validWebProxyHost(host string) bool {
-	if host == "" || len(host) > 253 || net.ParseIP(host) != nil || !strings.Contains(host, ".") {
-		return false
-	}
-	for _, label := range strings.Split(host, ".") {
-		if len(label) == 0 || len(label) > 63 || label[0] == '-' || label[len(label)-1] == '-' {
-			return false
-		}
-		for _, char := range label {
-			if (char < 'a' || char > 'z') && (char < '0' || char > '9') && char != '-' {
-				return false
-			}
-		}
-	}
-	return true
 }
 
 func nodeIDsExist(state *model.State, ids []string) bool {

@@ -259,7 +259,6 @@ td code { padding: 6px 10px; border-radius: var(--radius-pill); background: var(
 .proxy-node-cell small { display: block; margin-top: 5px; color: var(--color-steel); font-size: 9px; }
 .protocol-chip { display: inline-flex; align-items: center; min-height: 28px; padding: 0 10px; border-radius: var(--radius-pill); background: rgba(41,151,255,.12); color: #64d2ff; font-size: 9px; font-weight: 700; letter-spacing: .04em; white-space: nowrap; }
 .protocol-chip.socks5 { background: rgba(191,90,242,.13); color: #d08cff; }
-.protocol-chip.webproxy { background: rgba(41,151,255,.14); color: #2997ff; }
 .status-pill.disabled { background: rgba(66,66,69,.72); color: var(--color-glyph-silver); }
 .status-pill.unassigned, .status-pill.unchecked { background: rgba(255,159,10,.13); color: var(--color-launch-orange); }
 .status-pill.unavailable { background: rgba(255,69,58,.14); color: var(--color-error-red); }

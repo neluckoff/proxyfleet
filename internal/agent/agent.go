@@ -18,7 +18,7 @@ import (
 	"github.com/neluckoff/proxyfleet/internal/model"
 )
 
-const agentVersion = "0.5.2"
+const agentVersion = "0.5.3"
 
 type persistedState struct {
 	NodeID     string            `json:"nodeId"`
@@ -43,6 +43,9 @@ type runner struct {
 }
 
 func Run(ctx context.Context, log *slog.Logger) error {
+	if err := os.RemoveAll("/data/webproxy"); err != nil {
+		log.Warn("could not remove legacy WEB proxy data", "error", err)
+	}
 	controlURL := strings.TrimRight(strings.TrimSpace(os.Getenv("CONTROL_URL")), "/")
 	if controlURL == "" {
 		return errors.New("CONTROL_URL is required")
@@ -142,7 +145,7 @@ func (r *runner) sync(ctx context.Context) error {
 		return err
 	}
 	r.lastSyncAt.Store(time.Now().Unix())
-	r.log.Info("proxy configuration applied", "version", config.Version, "httpPort", config.HTTPPort, "socksPort", config.SOCKSPort, "webProxyPort", config.WebProxyPort, "users", len(config.Users))
+	r.log.Info("proxy configuration applied", "version", config.Version, "httpPort", config.HTTPPort, "socksPort", config.SOCKSPort, "users", len(config.Users))
 	return nil
 }
 

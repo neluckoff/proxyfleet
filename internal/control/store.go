@@ -1,10 +1,12 @@
 package control
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"os"
 	"path/filepath"
+	"slices"
 	"sync"
 
 	"github.com/neluckoff/proxyfleet/internal/model"
@@ -40,45 +42,34 @@ func openStore(path string) (*store, error) {
 	if s.state.Users == nil {
 		s.state.Users = []*model.ProxyUser{}
 	}
-	migrated := false
-	for _, node := range s.state.Nodes {
-		if node.WebProxyPort == 0 {
-			if node.LegacyMTProtoPort != 0 {
-				node.WebProxyPort = node.LegacyMTProtoPort
-			} else {
-				node.WebProxyPort = 8443
-			}
-			migrated = true
+	migrated := bytes.Contains(data, []byte(`"webProxyPort"`)) || bytes.Contains(data, []byte(`"mtProtoPort"`)) ||
+		bytes.Contains(data, []byte(`"webProxySecretCiphertext"`)) || bytes.Contains(data, []byte(`"mtProtoSecretCiphertext"`))
+	removedNodeIDs := make([]string, 0)
+	beforeUsers := len(s.state.Users)
+	s.state.Users = slices.DeleteFunc(s.state.Users, func(user *model.ProxyUser) bool {
+		if user.Protocol != "webproxy" && user.Protocol != "mtproto" {
+			return false
 		}
-		if node.LegacyMTProtoPort != 0 {
-			node.LegacyMTProtoPort = 0
-			migrated = true
+		removedNodeIDs = append(removedNodeIDs, user.NodeIDs...)
+		return true
+	})
+	if len(s.state.Users) != beforeUsers {
+		migrated = true
+		for _, nodeID := range uniqueStrings(removedNodeIDs) {
+			if node := findNode(&s.state, nodeID); node != nil {
+				node.ConfigVersion++
+			}
 		}
 	}
 	for _, user := range s.state.Users {
 		if user.Source == "" {
 			user.Source = "managed"
 		}
-		if user.Protocol == "mtproto" {
-			user.Protocol = "webproxy"
-			if user.WebProxySecretCiphertext == "" {
-				user.WebProxySecretCiphertext = user.LegacyMTProtoSecret
-			}
-			for _, nodeID := range user.NodeIDs {
-				if node := findNode(&s.state, nodeID); node != nil {
-					node.ConfigVersion++
-				}
-			}
-			migrated = true
-		}
-		if user.LegacyMTProtoSecret != "" {
-			user.LegacyMTProtoSecret = ""
-			migrated = true
-		}
-		if user.Protocol != "http" && user.Protocol != "socks5" && user.Protocol != "webproxy" {
+		if user.Protocol != "http" && user.Protocol != "socks5" {
 			// Legacy credentials predate the one-proxy/one-protocol model. Keep them
 			// usable through the HTTP listener instead of exposing two endpoints.
 			user.Protocol = "http"
+			migrated = true
 		}
 	}
 	if s.state.PushSubscriptions == nil {

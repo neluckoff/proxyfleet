@@ -37,7 +37,7 @@ func TestCredentialsAreScopedToProtocol(t *testing.T) {
 	httpUsers, socksUsers := splitCredentials([]model.AgentUser{
 		{Username: "http-only", PasswordHash: hash, Protocol: "http", Enabled: true},
 		{Username: "socks-only", PasswordHash: hash, Protocol: "socks5", Enabled: true},
-		{Username: "legacy", PasswordHash: hash, Protocol: "both", Enabled: true},
+		{Username: "retired", PasswordHash: hash, Protocol: "webproxy", Enabled: true},
 		{Username: "disabled", PasswordHash: hash, Protocol: "http", Enabled: false},
 	})
 	if _, ok := httpUsers["http-only"]; !ok {
@@ -52,11 +52,11 @@ func TestCredentialsAreScopedToProtocol(t *testing.T) {
 	if _, ok := httpUsers["socks-only"]; ok {
 		t.Fatal("SOCKS5 credential leaked to HTTP listener")
 	}
-	if _, ok := httpUsers["legacy"]; !ok {
-		t.Fatal("legacy credential must remain available on HTTP")
+	if _, ok := httpUsers["retired"]; ok {
+		t.Fatal("retired credential leaked to HTTP listener")
 	}
-	if _, ok := socksUsers["legacy"]; !ok {
-		t.Fatal("legacy credential must remain available on SOCKS5")
+	if _, ok := socksUsers["retired"]; ok {
+		t.Fatal("retired credential leaked to SOCKS5 listener")
 	}
 	if _, ok := httpUsers["disabled"]; ok {
 		t.Fatal("disabled credential must not be installed")
