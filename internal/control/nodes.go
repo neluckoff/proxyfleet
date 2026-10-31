@@ -16,7 +16,7 @@ func (s *server) listNodes(w http.ResponseWriter, _ *http.Request) {
 	state := s.store.snapshot()
 	result := make([]map[string]any, 0, len(state.Nodes))
 	for _, node := range state.Nodes {
-		result = append(result, publicNode(node))
+		result = append(result, publicNode(node, nodeProxyCount(state.Users, node.ID)))
 	}
 	writeJSON(w, http.StatusOK, result)
 }
@@ -64,7 +64,7 @@ func (s *server) createNode(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	s.notifyCategory("nodes", "Создана нода: "+node.Name)
-	writeJSON(w, http.StatusCreated, map[string]any{"node": publicNode(node), "enrollToken": token, "installCommand": s.installCommand(token)})
+	writeJSON(w, http.StatusCreated, map[string]any{"node": publicNode(node, 0), "enrollToken": token, "installCommand": s.installCommand(token)})
 }
 
 func (s *server) updateNode(w http.ResponseWriter, r *http.Request) {
@@ -131,13 +131,19 @@ func (s *server) updateNode(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	s.notifyCategory("nodes", "Обновлена конфигурация ноды: "+updated.Name)
-	writeJSON(w, http.StatusOK, publicNode(updated))
+	writeJSON(w, http.StatusOK, publicNode(updated, nodeProxyCount(s.store.snapshot().Users, id)))
 }
 
 func (s *server) deleteNode(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("id")
 	deletedName := ""
 	err := s.store.update(func(state *model.State) error {
+		if findNode(state, id) == nil {
+			return os.ErrNotExist
+		}
+		if nodeProxyCount(state.Users, id) > 0 {
+			return errNodeHasProxies
+		}
 		before := len(state.Nodes)
 		state.Nodes = slices.DeleteFunc(state.Nodes, func(node *model.Node) bool {
 			if node.ID == id {
@@ -157,6 +163,10 @@ func (s *server) deleteNode(w http.ResponseWriter, r *http.Request) {
 	})
 	if errors.Is(err, os.ErrNotExist) {
 		writeError(w, http.StatusNotFound, "Нода не найдена")
+		return
+	}
+	if errors.Is(err, errNodeHasProxies) {
+		writeError(w, http.StatusConflict, "Нельзя удалить ноду, пока к ней привязаны прокси")
 		return
 	}
 	if err != nil {
@@ -204,7 +214,7 @@ func (s *server) installCommand(token string) string {
 	return fmt.Sprintf("docker run -d --name proxyfleet-node --restart unless-stopped --network host -v proxyfleet_node_data:/data -e CONTROL_URL=%s -e ENROLL_TOKEN=%s %s agent", shellQuote(publicURL), shellQuote(token), shellQuote(s.nodeImage))
 }
 
-func publicNode(node *model.Node) map[string]any {
+func publicNode(node *model.Node, proxyCount int) map[string]any {
 	status := "pending"
 	if !node.LastSeenAt.IsZero() {
 		status = "offline"
@@ -221,7 +231,20 @@ func publicNode(node *model.Node) map[string]any {
 		"activeConnections": node.ActiveConnections, "bytesUp": node.BytesUp, "bytesDown": node.BytesDown, "status": status,
 		"memoryAllocBytes": node.MemoryAllocBytes, "memorySysBytes": node.MemorySysBytes, "goroutines": node.Goroutines,
 		"hostMemoryUsedBytes": node.HostMemoryUsedBytes, "hostMemoryTotalBytes": node.HostMemoryTotalBytes, "loadOne": node.LoadOne,
+		"proxyCount": proxyCount,
 	}
+}
+
+var errNodeHasProxies = errors.New("node has attached proxies")
+
+func nodeProxyCount(users []*model.ProxyUser, nodeID string) int {
+	count := 0
+	for _, user := range users {
+		if slices.Contains(user.NodeIDs, nodeID) {
+			count++
+		}
+	}
+	return count
 }
 
 func portsUnique(ports ...int) bool {

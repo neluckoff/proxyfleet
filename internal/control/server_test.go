@@ -139,3 +139,71 @@ func TestNodeEnrollmentFlow(t *testing.T) {
 		t.Fatalf("config returned %d: %s", configResponse.Code, configResponse.Body.String())
 	}
 }
+
+func TestDeleteNodeRequiresDetachedProxies(t *testing.T) {
+	s := testServer(t)
+	createNodeResponse := httptest.NewRecorder()
+	s.createNode(createNodeResponse, httptest.NewRequest(http.MethodPost, "/api/nodes", bytes.NewBufferString(`{"name":"Delete guard","advertisedHost":"guard.example.test"}`)))
+	var created struct {
+		Node struct {
+			ID string `json:"id"`
+		} `json:"node"`
+	}
+	if err := json.Unmarshal(createNodeResponse.Body.Bytes(), &created); err != nil {
+		t.Fatal(err)
+	}
+
+	createProxyResponse := httptest.NewRecorder()
+	s.createUser(createProxyResponse, httptest.NewRequest(http.MethodPost, "/api/proxies", bytes.NewBufferString(`{"username":"attached_proxy","password":"a-secure-test-password","protocol":"http","nodeId":"`+created.Node.ID+`"}`)))
+	if createProxyResponse.Code != http.StatusCreated {
+		t.Fatalf("create proxy returned %d: %s", createProxyResponse.Code, createProxyResponse.Body.String())
+	}
+
+	listResponse := httptest.NewRecorder()
+	s.listNodes(listResponse, httptest.NewRequest(http.MethodGet, "/api/nodes", nil))
+	var nodes []struct {
+		ProxyCount int `json:"proxyCount"`
+	}
+	if err := json.Unmarshal(listResponse.Body.Bytes(), &nodes); err != nil {
+		t.Fatal(err)
+	}
+	if len(nodes) != 1 || nodes[0].ProxyCount != 1 {
+		t.Fatalf("expected one attached proxy, got %#v", nodes)
+	}
+
+	deleteRequest := httptest.NewRequest(http.MethodDelete, "/api/nodes/"+created.Node.ID, nil)
+	deleteRequest.SetPathValue("id", created.Node.ID)
+	deleteResponse := httptest.NewRecorder()
+	s.deleteNode(deleteResponse, deleteRequest)
+	if deleteResponse.Code != http.StatusConflict {
+		t.Fatalf("delete node with attached proxy returned %d: %s", deleteResponse.Code, deleteResponse.Body.String())
+	}
+	if len(s.store.snapshot().Nodes) != 1 {
+		t.Fatal("node with attached proxy was deleted")
+	}
+}
+
+func TestDeleteNodeWithoutProxies(t *testing.T) {
+	s := testServer(t)
+	createResponse := httptest.NewRecorder()
+	s.createNode(createResponse, httptest.NewRequest(http.MethodPost, "/api/nodes", bytes.NewBufferString(`{"name":"Disposable node"}`)))
+	var created struct {
+		Node struct {
+			ID string `json:"id"`
+		} `json:"node"`
+	}
+	if err := json.Unmarshal(createResponse.Body.Bytes(), &created); err != nil {
+		t.Fatal(err)
+	}
+
+	deleteRequest := httptest.NewRequest(http.MethodDelete, "/api/nodes/"+created.Node.ID, nil)
+	deleteRequest.SetPathValue("id", created.Node.ID)
+	deleteResponse := httptest.NewRecorder()
+	s.deleteNode(deleteResponse, deleteRequest)
+	if deleteResponse.Code != http.StatusOK {
+		t.Fatalf("delete empty node returned %d: %s", deleteResponse.Code, deleteResponse.Body.String())
+	}
+	if len(s.store.snapshot().Nodes) != 0 {
+		t.Fatal("node without proxies was not deleted")
+	}
+}

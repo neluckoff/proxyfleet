@@ -313,8 +313,15 @@
         <label>SOCKS5 порт<input name="socksPort" type="number" min="1024" max="65535" value="1080" required></label>
       </div>
       <p class="form-error" data-form-error></p>
+      <div id="node-danger-zone" class="proxy-danger-zone hidden"><div><b>Удалить ноду</b><small id="node-delete-hint">Удалит ноду из ProxyFleet. Контейнер агента на сервере потребуется остановить отдельно.</small></div><button id="node-delete" class="button danger-filled" type="button" aria-describedby="node-delete-hint">Удалить</button></div>
       <div class="modal-actions"><button class="button secondary" type="button" data-close-dialog>Отмена</button><button id="node-submit-button" class="button primary" type="submit">Создать ноду</button></div>
     </form>
+  </dialog>
+
+  <dialog id="delete-node-dialog" class="modal confirm-modal">
+    <div class="modal-head"><div><p class="eyebrow danger-eyebrow">НЕОБРАТИМОЕ ДЕЙСТВИЕ</p><h3>Удалить ноду?</h3></div><button class="icon-button" type="button" data-close-dialog aria-label="Закрыть">×</button></div>
+    <p class="confirm-copy"><b id="delete-node-name">Нода</b> будет удалена из ProxyFleet. Контейнер агента на сервере не остановится автоматически — его потребуется удалить отдельно.</p>
+    <div class="modal-actions"><button class="button secondary" type="button" data-close-dialog>Отмена</button><button id="confirm-delete-node" class="button danger-filled" type="button">Удалить ноду</button></div>
   </dialog>
 
   <dialog id="proxy-dialog" class="modal proxy-create-modal">

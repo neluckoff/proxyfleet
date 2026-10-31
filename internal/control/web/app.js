@@ -613,6 +613,9 @@ function openNodeDialog() {
   $('#node-dialog-title').textContent = 'Подключить сервер'
   $('#node-dialog-copy').textContent = 'После создания появится одноразовая Docker-команда. Выполните её на новом VPS.'
   $('#node-submit-button').textContent = 'Создать ноду'
+  $('#node-danger-zone').classList.add('hidden')
+  $('#node-delete').disabled = false
+  $('#node-delete').removeAttribute('title')
   window.I18n?.apply($('#node-dialog'))
   $('#node-dialog').showModal()
 }
@@ -631,6 +634,19 @@ function openEditNodeDialog(node) {
   $('#node-dialog-title').textContent = node.name
   $('#node-dialog-copy').textContent = 'Изменения конфигурации применятся после следующего обращения агента к панели.'
   $('#node-submit-button').textContent = 'Сохранить изменения'
+  const proxyCount = Number(node.proxyCount || state.proxies.filter(proxy => proxy.source !== 'external' && proxy.nodeId === node.id).length)
+  const deleteButton = $('#node-delete')
+  const deleteHint = $('#node-delete-hint')
+  $('#node-danger-zone').classList.remove('hidden')
+  deleteButton.disabled = proxyCount > 0
+  if (proxyCount > 0) {
+    const hint = tr('К ноде привязаны прокси: {count}. Сначала перенесите или удалите их.', { count: proxyCount })
+    deleteHint.textContent = hint
+    deleteButton.title = hint
+  } else {
+    deleteHint.textContent = tr('Удалит ноду из ProxyFleet. Контейнер агента на сервере потребуется остановить отдельно.')
+    deleteButton.removeAttribute('title')
+  }
   window.I18n?.apply($('#node-dialog'))
   $('#node-dialog').showModal()
 }
@@ -1091,6 +1107,36 @@ $('#nodes-grid').addEventListener('click', event => {
   if (!editButton) return
   const node = state.nodes.find(item => item.id === editButton.dataset.editNode)
   if (node) openEditNodeDialog(node)
+})
+
+$('#node-delete').addEventListener('click', () => {
+  const node = state.nodes.find(item => item.id === state.editingNodeId)
+  if (!node || $('#node-delete').disabled) return
+  $('#delete-node-name').textContent = node.name
+  window.I18n?.apply($('#delete-node-dialog'))
+  $('#delete-node-dialog').showModal()
+})
+
+$('#confirm-delete-node').addEventListener('click', async event => {
+  const node = state.nodes.find(item => item.id === state.editingNodeId)
+  if (!node) return
+  const button = event.currentTarget
+  button.disabled = true
+  button.textContent = tr('Удаление…')
+  try {
+    await api(`/api/nodes/${node.id}`, { method: 'DELETE' })
+    $('#delete-node-dialog').close()
+    $('#node-dialog').close()
+    state.editingNodeId = null
+    await refreshAll()
+    showToast('Нода удалена')
+  } catch (error) {
+    showToast(error.message)
+    await refreshAll()
+  } finally {
+    button.disabled = false
+    button.textContent = tr('Удалить ноду')
+  }
 })
 
 $('#proxy-form').addEventListener('input', updateProxyPreview)
