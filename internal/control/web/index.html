@@ -268,7 +268,7 @@
             <form id="telegram-form" class="settings-form">
               <label class="settings-switch-row"><span><b>Отправлять уведомления</b><small>Можно временно выключить, не удаляя токен.</small></span><input id="telegram-enabled" name="enabled" type="checkbox"><i></i></label>
               <div class="settings-fields-grid telegram-fields-grid">
-                <label class="span-3">Токен бота<input name="botToken" type="password" autocomplete="off" placeholder="Оставьте пустым, чтобы не менять"><span class="field-hint">Создайте бота через @BotFather и вставьте выданный токен.</span></label>
+                <label class="span-3">Токен бота<span class="telegram-token-control"><input name="botToken" type="password" autocomplete="off" placeholder="Вставьте токен бота"><button id="telegram-token-change" class="hidden" type="button">Изменить</button></span><span id="telegram-token-hint" class="field-hint">Создайте бота через @BotFather и вставьте выданный токен.</span></label>
                 <label>Chat ID<input name="chatId" autocomplete="off" placeholder="123456789 или @channel"><span class="field-hint">Личный чат, группа или канал.</span></label>
                 <label>Topic ID <span class="label-note">необязательно</span><input name="messageThreadId" type="number" min="1" step="1" inputmode="numeric" placeholder="Например, 42"><span class="field-hint">Число из ссылки на топик. Оставьте пустым для общего чата.</span></label>
                 <label>HTTP(S)-прокси<input name="proxyUrl" autocomplete="off" placeholder="http://user:pass@host:3128"><span class="field-hint">Можно оставить пустым для прямого подключения.</span></label>

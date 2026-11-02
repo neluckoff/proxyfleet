@@ -299,8 +299,12 @@ td code { padding: 6px 10px; border-radius: var(--radius-pill); background: var(
 .settings-actions .button { min-height: 44px; padding: 0 20px; font-size: 13px; font-weight: 600; }
 .settings-fields-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
 .settings-fields-grid > label { grid-template-columns: auto minmax(0, 1fr); align-content: start; column-gap: 7px; }
-.settings-fields-grid > label > input, .settings-fields-grid > label > .field-hint { grid-column: 1 / -1; }
+.settings-fields-grid > label > input, .settings-fields-grid > label > .field-hint, .settings-fields-grid > label > .telegram-token-control { grid-column: 1 / -1; }
 .telegram-fields-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.telegram-token-control { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; }
+.telegram-token-control button { min-width: 96px; padding: 0 18px; border: 1px solid rgba(41,151,255,.4); border-radius: var(--radius-pill); background: rgba(41,151,255,.1); color: var(--color-link-blue); cursor: pointer; font-size: 11px; font-weight: 600; }
+.telegram-token-control button:hover { background: rgba(41,151,255,.17); }
+.telegram-token-control input:disabled { cursor: default; opacity: .7; }
 .settings-switch-row { display: flex; align-items: center; justify-content: space-between; gap: 20px; min-height: 64px; padding: 12px 16px; border: 1px solid rgba(255,255,255,.1); border-radius: 20px; background: var(--color-carbon); cursor: pointer; }
 .settings-switch-row span { min-width: 0; }
 .settings-switch-row b { display: block; color: var(--color-polar-white); font-size: 13px; font-weight: 500; }

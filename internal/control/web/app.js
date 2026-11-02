@@ -147,7 +147,15 @@ function renderSettings() {
   renderBrandingPreview(state.pendingLogoDataURL ?? settings.logoDataUrl ?? '')
   $('#telegram-enabled').checked = Boolean(telegram.enabled)
   const telegramForm = $('#telegram-form')
-  telegramForm.elements.namedItem('botToken').value = ''
+  const tokenInput = telegramForm.elements.namedItem('botToken')
+  const tokenChangeButton = $('#telegram-token-change')
+  tokenInput.value = telegram.configured ? 'proxyfleet-token-saved' : ''
+  tokenInput.disabled = Boolean(telegram.configured)
+  tokenInput.placeholder = tr(telegram.configured ? 'Токен сохранён' : 'Вставьте токен бота')
+  tokenChangeButton.classList.toggle('hidden', !telegram.configured)
+  $('#telegram-token-hint').textContent = tr(telegram.configured
+    ? 'Токен сохранён. Нажмите «Изменить», чтобы заменить его.'
+    : 'Создайте бота через @BotFather и вставьте выданный токен.')
   telegramForm.elements.namedItem('chatId').value = telegram.chatId || ''
   telegramForm.elements.namedItem('messageThreadId').value = telegram.messageThreadId || ''
   telegramForm.elements.namedItem('proxyUrl').value = telegram.proxyUrl || ''
@@ -935,6 +943,16 @@ $('#telegram-form').addEventListener('submit', async event => {
     renderSettings()
     showToast('Настройки Telegram сохранены')
   } catch (error) { showToast(error.message) }
+})
+
+$('#telegram-token-change').addEventListener('click', event => {
+  const input = $('#telegram-form').elements.namedItem('botToken')
+  input.disabled = false
+  input.value = ''
+  input.placeholder = tr('Вставьте новый токен')
+  event.currentTarget.classList.add('hidden')
+  $('#telegram-token-hint').textContent = tr('Введите новый токен. Сохранённый токен будет заменён только после сохранения настроек.')
+  input.focus()
 })
 
 $('#telegram-test').addEventListener('click', async event => {
