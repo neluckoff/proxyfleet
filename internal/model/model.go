@@ -15,21 +15,22 @@ type State struct {
 }
 
 type Settings struct {
-	AdminUsername       string    `json:"adminUsername"`
-	AdminPasswordHash   string    `json:"adminPasswordHash"`
-	SessionSecret       string    `json:"sessionSecret"`
-	DataEncryptionKey   string    `json:"dataEncryptionKey,omitempty"`
-	VAPIDPublicKey      string    `json:"vapidPublicKey,omitempty"`
-	VAPIDPrivateKey     string    `json:"vapidPrivateKey,omitempty"`
-	PublicURL           string    `json:"publicUrl"`
-	SystemName          string    `json:"systemName,omitempty"`
-	LogoDataURL         string    `json:"logoDataUrl,omitempty"`
-	TelegramEnabled     bool      `json:"telegramEnabled,omitempty"`
-	TelegramBotToken    string    `json:"telegramBotToken,omitempty"`
-	TelegramBotUsername string    `json:"telegramBotUsername,omitempty"`
-	TelegramChatID      string    `json:"telegramChatId,omitempty"`
-	TelegramProxyURL    string    `json:"telegramProxyUrl,omitempty"`
-	CreatedAt           time.Time `json:"createdAt"`
+	AdminUsername           string    `json:"adminUsername"`
+	AdminPasswordHash       string    `json:"adminPasswordHash"`
+	SessionSecret           string    `json:"sessionSecret"`
+	DataEncryptionKey       string    `json:"dataEncryptionKey,omitempty"`
+	VAPIDPublicKey          string    `json:"vapidPublicKey,omitempty"`
+	VAPIDPrivateKey         string    `json:"vapidPrivateKey,omitempty"`
+	PublicURL               string    `json:"publicUrl"`
+	SystemName              string    `json:"systemName,omitempty"`
+	LogoDataURL             string    `json:"logoDataUrl,omitempty"`
+	TelegramEnabled         bool      `json:"telegramEnabled,omitempty"`
+	TelegramBotToken        string    `json:"telegramBotToken,omitempty"`
+	TelegramBotUsername     string    `json:"telegramBotUsername,omitempty"`
+	TelegramChatID          string    `json:"telegramChatId,omitempty"`
+	TelegramMessageThreadID int64     `json:"telegramMessageThreadId,omitempty"`
+	TelegramProxyURL        string    `json:"telegramProxyUrl,omitempty"`
+	CreatedAt               time.Time `json:"createdAt"`
 }
 
 type Node struct {

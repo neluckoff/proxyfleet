@@ -149,6 +149,7 @@ function renderSettings() {
   const telegramForm = $('#telegram-form')
   telegramForm.elements.namedItem('botToken').value = ''
   telegramForm.elements.namedItem('chatId').value = telegram.chatId || ''
+  telegramForm.elements.namedItem('messageThreadId').value = telegram.messageThreadId || ''
   telegramForm.elements.namedItem('proxyUrl').value = telegram.proxyUrl || ''
   const status = $('#telegram-status')
   status.className = `settings-status ${telegram.enabled ? 'connected' : telegram.configured ? 'disabled' : ''}`
@@ -925,6 +926,7 @@ $('#telegram-form').addEventListener('submit', async event => {
   const payload = {
     enabled: form.get('enabled') === 'on',
     chatId: form.get('chatId'),
+    messageThreadId: Number(form.get('messageThreadId') || 0),
     proxyUrl: form.get('proxyUrl'),
   }
   if (String(form.get('botToken') || '').trim()) payload.botToken = form.get('botToken')

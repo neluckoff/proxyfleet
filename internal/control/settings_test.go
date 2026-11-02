@@ -21,7 +21,7 @@ func TestTelegramSettingsDoNotExposeToken(t *testing.T) {
 	}
 
 	response := httptest.NewRecorder()
-	body := `{"enabled":true,"botToken":"123456:secret-value","chatId":"123","proxyUrl":"http://user:pass@proxy.test:3128"}`
+	body := `{"enabled":true,"botToken":"123456:secret-value","chatId":"123","messageThreadId":42,"proxyUrl":"http://user:pass@proxy.test:3128"}`
 	s.updateTelegramSettings(response, httptest.NewRequest(http.MethodPatch, "/api/settings/telegram", bytes.NewBufferString(body)))
 	if response.Code != http.StatusOK {
 		t.Fatalf("Telegram settings returned %d: %s", response.Code, response.Body.String())
@@ -29,9 +29,24 @@ func TestTelegramSettingsDoNotExposeToken(t *testing.T) {
 	if strings.Contains(response.Body.String(), "secret-value") {
 		t.Fatal("Telegram token was exposed in settings response")
 	}
+	if !strings.Contains(response.Body.String(), `"messageThreadId":42`) {
+		t.Fatalf("Topic ID was not returned in public settings: %s", response.Body.String())
+	}
 	settings := s.store.snapshot().Settings
-	if !settings.TelegramEnabled || settings.TelegramBotToken == "" || settings.TelegramProxyURL == "" {
+	if !settings.TelegramEnabled || settings.TelegramBotToken == "" || settings.TelegramMessageThreadID != 42 || settings.TelegramProxyURL == "" {
 		t.Fatalf("Telegram settings were not persisted: %#v", settings)
+	}
+}
+
+func TestTelegramSettingsRejectNegativeMessageThreadID(t *testing.T) {
+	s := testServer(t)
+	configureTestOwner(t, s)
+
+	response := httptest.NewRecorder()
+	body := `{"messageThreadId":-1}`
+	s.updateTelegramSettings(response, httptest.NewRequest(http.MethodPatch, "/api/settings/telegram", bytes.NewBufferString(body)))
+	if response.Code != http.StatusBadRequest {
+		t.Fatalf("negative Topic ID returned %d: %s", response.Code, response.Body.String())
 	}
 }
 

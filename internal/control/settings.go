@@ -35,11 +35,12 @@ func publicSettings(settings *model.Settings) map[string]any {
 	}
 	result["publicUrl"] = settings.PublicURL
 	result["telegram"] = map[string]any{
-		"enabled":     settings.TelegramEnabled,
-		"configured":  settings.TelegramBotToken != "",
-		"botUsername": settings.TelegramBotUsername,
-		"chatId":      settings.TelegramChatID,
-		"proxyUrl":    settings.TelegramProxyURL,
+		"enabled":         settings.TelegramEnabled,
+		"configured":      settings.TelegramBotToken != "",
+		"botUsername":     settings.TelegramBotUsername,
+		"chatId":          settings.TelegramChatID,
+		"messageThreadId": settings.TelegramMessageThreadID,
+		"proxyUrl":        settings.TelegramProxyURL,
 	}
 	return result
 }
@@ -99,11 +100,12 @@ func validLogoDataURL(value string) bool {
 
 func (s *server) updateTelegramSettings(w http.ResponseWriter, r *http.Request) {
 	var input struct {
-		Enabled    *bool   `json:"enabled"`
-		BotToken   *string `json:"botToken"`
-		ChatID     *string `json:"chatId"`
-		ProxyURL   *string `json:"proxyUrl"`
-		ClearToken bool    `json:"clearToken"`
+		Enabled         *bool   `json:"enabled"`
+		BotToken        *string `json:"botToken"`
+		ChatID          *string `json:"chatId"`
+		MessageThreadID *int64  `json:"messageThreadId"`
+		ProxyURL        *string `json:"proxyUrl"`
+		ClearToken      bool    `json:"clearToken"`
 	}
 	if !decodeJSON(w, r, &input) {
 		return
@@ -114,6 +116,10 @@ func (s *server) updateTelegramSettings(w http.ResponseWriter, r *http.Request) 
 			writeError(w, http.StatusBadRequest, "Proxy должен начинаться с http:// или https://")
 			return
 		}
+	}
+	if input.MessageThreadID != nil && *input.MessageThreadID < 0 {
+		writeError(w, http.StatusBadRequest, "Topic ID должен быть положительным числом")
+		return
 	}
 	err := s.store.update(func(state *model.State) error {
 		settings := state.Settings
@@ -130,6 +136,9 @@ func (s *server) updateTelegramSettings(w http.ResponseWriter, r *http.Request) 
 		}
 		if input.ChatID != nil {
 			candidate.TelegramChatID = strings.TrimSpace(*input.ChatID)
+		}
+		if input.MessageThreadID != nil {
+			candidate.TelegramMessageThreadID = *input.MessageThreadID
 		}
 		if input.ProxyURL != nil {
 			candidate.TelegramProxyURL = strings.TrimSpace(*input.ProxyURL)

@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"strconv"
 	"strings"
 	"time"
 
@@ -64,11 +65,19 @@ func telegramCall(ctx context.Context, settings *model.Settings, method string, 
 }
 
 func sendTelegramMessage(ctx context.Context, settings *model.Settings, message string) error {
-	_, err := telegramCall(ctx, settings, "sendMessage", url.Values{
+	_, err := telegramCall(ctx, settings, "sendMessage", telegramMessageValues(settings, message))
+	return err
+}
+
+func telegramMessageValues(settings *model.Settings, message string) url.Values {
+	values := url.Values{
 		"chat_id": {settings.TelegramChatID},
 		"text":    {message},
-	})
-	return err
+	}
+	if settings.TelegramMessageThreadID > 0 {
+		values.Set("message_thread_id", strconv.FormatInt(settings.TelegramMessageThreadID, 10))
+	}
+	return values
 }
 
 func (s *server) testTelegramSettings(w http.ResponseWriter, r *http.Request) {

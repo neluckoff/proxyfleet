@@ -202,7 +202,7 @@ Do not expose HTTP/SOCKS5 ports to the whole internet, even when authentication 
 
 ### Telegram
 
-The **Settings** page accepts a bot token, chat ID, and optional HTTP(S) proxy URL. The connection test calls `getMe` and sends a test message. The saved token is never returned to the browser.
+The **Settings** page accepts a bot token, chat ID, optional topic ID (`message_thread_id`), and optional HTTP(S) proxy URL. When a topic ID is set, both test and event notifications are sent to that Telegram forum topic. The connection test calls `getMe` and sends a test message. The saved token is never returned to the browser.
 
 Notifications cover node enrollment, offline/online transitions, configuration changes, and proxy operations.
 
